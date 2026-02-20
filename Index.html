@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeMate — Built for the Trades</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  /* ===================== PASTE YOUR KEYS =====================
+     Replace the two values in the CONFIG section in the <script>
+     at the bottom of this file. Nothing else needs to change.
+     =========================================================== */
+
+  :root {
+    --steel: #1a1f2e;
+    --steel-mid: #252b3b;
+    --steel-light: #2e3650;
+    --amber: #f59e0b;
+    --amber-hot: #fbbf24;
+    --amber-dim: #92400e;
+    --white: #f8f9fa;
+    --muted: #8892a4;
+    --green: #10b981;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --border: rgba(255,255,255,0.07);
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--steel);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* =================== AUTH SCREEN =================== */
+  #auth-screen {
+    display: none;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #auth-screen.visible { display: flex; }
+
+  .auth-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(245,158,11,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(59,130,246,0.05) 0%, transparent 50%),
+      var(--steel);
+  }
+
+  .auth-grid-lines {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .auth-box {
+    position: relative;
+    z-index: 10;
+    width: 420px;
+    max-width: 95vw;
+  }
+
+  .auth-logo {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .auth-logo-mark {
+    font-family: 'Bebas Neue';
+    font-size: 52px;
+    letter-spacing: 4px;
+    color: var(--amber);
+    line-height: 1;
+  }
+
+  .auth-logo-sub {
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .auth-card {
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+  }
+
+  .auth-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 28px;
+    background: var(--steel-light);
+    border-radius: 10px;
+    padding: 4px;
+  }
+
+  .auth-tab {
+    flex: 1;
+    padding: 9px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 7px;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+
+  .auth-tab.active {
+    background: var(--steel-mid);
+    color: var(--amber);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .auth-form { display: flex; flex-direction: column; gap: 16px; }
+
+  .auth-form label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .auth-form input {
+    width: 100%;
+    background: var(--steel-light);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 12px 16px;
+    color: var(--white);
+    font-size: 15px;
+    font-family: 'DM Sans';
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .auth-form input:focus { border-color: var(--amber); }
+
+  .auth-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--amber);
+    color: var(--steel);
+    border: none;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'DM Sans';
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 4px;
+  }
+
+  .auth-btn:hover { background: var(--amber-hot); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(245,158,11,0.3); }
+  .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .auth-error {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--red);
+    display: none;
+  }
+
+  .auth-error.show { display: block; }
+
+  .auth-divider {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 20px;
+  }
+
+  /* =================== LOADING SCREEN =================== */
+  #loading-screen {
+    display: none;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  #loading-screen.visible { display: flex; }
+
+  .spinner {
+    width: 44px; height: 44px;
+    border: 3px solid var(--border);
+    border-top-color: var(--amber);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-size: 14px;
+    color: var(--muted);
+    font-family: 'DM Mono';
+  }
+
+  /* =================== APP SHELL =================== */
+  #app-shell { display: none; }
+  #app-shell.visible { display: block; }
+
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 220px;
+    background: var(--steel-mid);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+  }
+
+  .logo { padding: 24px 20px; border-bottom: 1px solid var(--border); }
+  .logo-mark { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 2px; color: var(--amber); line-height: 1; }
+  .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-top: 2px; }
+
+  .nav { flex: 1; padding: 16px 0; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item:hover { color: var(--white); background: rgba(255,255,255,0.04); }
+  .nav-item.active { color: var(--amber); border-left-color: var(--amber); background: rgba(245,158,11,0.08); }
+  .nav-icon { font-size: 18px; width: 20px; text-align: center; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--amber);
+    color: var(--steel);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 20px;
+    font-family: 'DM Mono';
+  }
+
+  .nav-badge.red { background: var(--red); color: #fff; }
+
+  .sidebar-bottom { padding: 16px 20px; border-top: 1px solid var(--border); }
+
+  .user-block { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .user-block:hover .user-name { color: var(--amber); }
+
+  .user-avatar {
+    width: 36px; height: 36px;
+    background: var(--amber-dim);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue'; font-size: 16px; color: var(--amber);
+    flex-shrink: 0;
+  }
+
+  .user-name { font-size: 13px; font-weight: 600; transition: color 0.15s; }
+  .user-role { font-size: 11px; color: var(--muted); }
+  .signout-hint { font-size: 10px; color: var(--muted); margin-top: 6px; text-align: center; }
+
+  /* =================== MAIN =================== */
+  .main { margin-left: 220px; min-height: 100vh; padding: 32px; }
+
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.2s ease; }
+
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+  .page-title { font-family: 'Bebas Neue'; font-size: 42px; letter-spacing: 2px; line-height: 1; }
+  .page-sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 8px; font-size: 14px;
+    font-weight: 600; cursor: pointer; border: none;
+    transition: all 0.15s; font-family: 'DM Sans';
+  }
+
+  .btn-primary { background: var(--amber); color: var(--steel); }
+  .btn-primary:hover { background: var(--amber-hot); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(245,158,11,0.3); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--white); border-color: rgba(255,255,255,0.2); }
+  .btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+  .btn-success { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+
+  .stat-card {
+    background: var(--steel-mid); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden;
+  }
+
+  .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--amber); }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.blue::before { background: var(--blue); }
+  .stat-card.red::before { background: var(--red); }
+
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); font-weight: 600; }
+  .stat-value { font-family: 'Bebas Neue'; font-size: 38px; letter-spacing: 1px; line-height: 1.1; margin-top: 4px; }
+  .stat-delta { font-size: 12px; color: var(--green); margin-top: 4px; }
+  .stat-delta.down { color: var(--red); }
+
+  .card { background: var(--steel-mid); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+  .card-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 20px; }
+
+  .table { width: 100%; border-collapse: collapse; }
+  .table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); font-weight: 600; padding: 0 16px 12px; border-bottom: 1px solid var(--border); }
+  .table td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .table tr:last-child td { border-bottom: none; }
+  .table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: 'DM Mono'; }
+  .badge-pending { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .badge-paid { background: rgba(16,185,129,0.15); color: var(--green); }
+  .badge-overdue { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge-scheduled { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .badge-complete { background: rgba(16,185,129,0.15); color: var(--green); }
+  .badge-draft { background: rgba(136,146,164,0.15); color: var(--muted); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--steel-mid); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; animation: modalIn 0.2s ease; }
+  @keyframes modalIn { from { opacity:0; transform:scale(0.95) translateY(10px); } to { opacity:1; transform:scale(1) translateY(0); } }
+  .modal-title { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 1px; margin-bottom: 24px; }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid.single { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.span2 { grid-column: span 2; }
+
+  label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+
+  input, select, textarea {
+    background: var(--steel-light); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; color: var(--white);
+    font-size: 14px; font-family: 'DM Sans'; outline: none; transition: border-color 0.15s;
+  }
+
+  input:focus, select:focus, textarea:focus { border-color: var(--amber); }
+  select option { background: var(--steel-mid); }
+  textarea { resize: vertical; min-height: 80px; }
+  .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+
+  /* LAYOUT */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  /* CUSTOMERS */
+  .customer-item { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+  .customer-item:last-child { border-bottom: none; }
+  .customer-item:hover { padding-left: 8px; }
+  .customer-avatar { width: 40px; height: 40px; background: var(--steel-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: var(--amber); flex-shrink: 0; }
+  .customer-name { font-weight: 600; font-size: 15px; }
+  .customer-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .customer-meta { margin-left: auto; text-align: right; }
+  .customer-value { font-family: 'DM Mono'; font-size: 14px; font-weight: 500; color: var(--green); }
+  .customer-jobs { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* JOB BLOCKS */
+  .job-block { background: var(--steel-light); border: 1px solid var(--border); border-left: 4px solid var(--amber); border-radius: 8px; padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.15s; }
+  .job-block:hover { transform: translateX(4px); }
+  .job-block.complete { border-left-color: var(--green); opacity: 0.7; }
+  .job-block.urgent { border-left-color: var(--red); }
+  .job-time { font-family: 'DM Mono'; font-size: 13px; color: var(--amber); min-width: 80px; }
+  .job-name-text { font-weight: 600; }
+  .job-address { font-size: 12px; color: var(--muted); }
+  .job-type-badge { margin-left: auto; }
+
+  /* SCHEDULE DAY */
+  .schedule-day { margin-bottom: 24px; }
+  .schedule-day-label { font-size: 11px; text-transform: uppercase; letter-spacing: 3px; color: var(--muted); font-weight: 700; margin-bottom: 12px; }
+
+  /* SEARCH */
+  .search-bar { display: flex; align-items: center; gap: 12px; background: var(--steel-mid); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; margin-bottom: 24px; }
+  .search-bar input { background: none; border: none; padding: 0; flex: 1; font-size: 15px; }
+  .search-icon { color: var(--muted); font-size: 18px; }
+
+  /* QUOTE LINE ITEMS */
+  .line-item { display: grid; grid-template-columns: 1fr 80px 100px 40px; gap: 8px; margin-bottom: 8px; align-items: start; position: relative; }
+  .line-item input { padding: 8px 12px; font-size: 13px; }
+  .remove-line { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 8px 0; display: flex; align-items: center; justify-content: center; transition: color 0.15s; }
+  .remove-line:hover { color: var(--red); }
+  .add-line-btn { background: none; border: 1px dashed var(--border); color: var(--muted); border-radius: 8px; padding: 8px; width: 100%; cursor: pointer; font-size: 13px; font-family: 'DM Sans'; transition: all 0.15s; margin-bottom: 12px; }
+  .add-line-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+  .quote-total { display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding: 16px 0; border-top: 1px solid var(--border); font-size: 22px; font-family: 'Bebas Neue'; letter-spacing: 1px; color: var(--amber); }
+
+  /* AUTOCOMPLETE */
+  .ac-wrapper { position: relative; }
+  .ac-dropdown { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--steel-light); border: 1px solid var(--amber); border-top: none; border-radius: 0 0 8px 8px; z-index: 500; max-height: 200px; overflow-y: auto; }
+  .ac-dropdown.open { display: block; }
+  .ac-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover { background: rgba(245,158,11,0.12); }
+  .ac-item-name { font-weight: 500; }
+  .ac-item-price { font-family: 'DM Mono'; font-size: 12px; color: var(--amber); }
+  .ac-item-count { font-size: 10px; color: var(--muted); margin-left: 8px; }
+  .ac-no-results { padding: 10px 14px; font-size: 13px; color: var(--muted); font-style: italic; }
+
+  /* PRICE BOOK */
+  .pb-item { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .pb-item:last-child { border-bottom: none; }
+  .pb-icon { width: 38px; height: 38px; background: var(--steel-light); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .pb-name { font-weight: 600; font-size: 14px; }
+  .pb-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .pb-price { margin-left: auto; font-family: 'DM Mono'; font-size: 16px; font-weight: 500; color: var(--amber); text-align: right; }
+  .pb-used { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .pb-edit-btn { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: 'DM Sans'; transition: all 0.15s; margin-left: 8px; }
+  .pb-edit-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .pb-category { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); font-weight: 700; padding: 20px 0 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+
+  /* SAVED PILL */
+  .saved-pill { display: inline-flex; align-items: center; gap: 5px; background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.2); border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; opacity: 0; transition: opacity 0.4s; }
+  .saved-pill.show { opacity: 1; }
+
+  /* FOLLOW-UP */
+  .followup-item { background: var(--steel-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px; }
+  .followup-icon { font-size: 24px; }
+  .followup-name { font-weight: 600; font-size: 15px; }
+  .followup-reason { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .followup-actions { margin-left: auto; display: flex; gap: 8px; }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-state-title { font-size: 18px; font-weight: 600; color: var(--white); margin-bottom: 8px; }
+  .empty-state-sub { font-size: 14px; margin-bottom: 24px; }
+
+  /* DATA STATE */
+  .data-loading { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+
+  /* PROGRESS BAR */
+  .progress-bar { height: 6px; background: var(--steel-light); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--amber); border-radius: 3px; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--steel-light); border: 1px solid var(--green); border-radius: 10px; padding: 14px 20px; font-size: 14px; font-weight: 500; z-index: 2000; transform: translateY(80px); opacity: 0; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; align-items: center; gap: 10px; max-width: 320px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { border-color: var(--red); }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--steel-light); border-radius: 3px; }
+
+  /* INVOICE PREVIEW */
+  .invoice-preview { background: #fff; color: #111; border-radius: 10px; padding: 32px; }
+  .invoice-header { display: flex; justify-content: space-between; margin-bottom: 32px; }
+  .invoice-company { font-weight: 800; font-size: 22px; color: #111; }
+  .invoice-label { font-size: 28px; font-weight: 900; color: #f59e0b; letter-spacing: 2px; }
+  .invoice-to { margin-bottom: 24px; }
+  .invoice-to-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #888; font-weight: 700; margin-bottom: 4px; }
+  .invoice-to-name { font-size: 16px; font-weight: 700; color: #111; }
+  .invoice-to-detail { font-size: 13px; color: #666; }
+  .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  .invoice-table th { background: #f5f5f5; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #888; }
+  .invoice-table td { padding: 12px 14px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; }
+  .invoice-total-row { text-align: right; padding-top: 12px; }
+  .invoice-total-amount { font-size: 28px; font-weight: 900; color: #111; }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOADING ===================== -->
+<div id="loading-screen" class="visible">
+  <div class="spinner"></div>
+  <div class="loading-text">Starting TradeMate...</div>
+</div>
+
+<!-- ===================== AUTH ===================== -->
+<div id="auth-screen">
+  <div class="auth-bg"></div>
+  <div class="auth-grid-lines"></div>
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">TradeMate</div>
+      <div class="auth-logo-sub">Built for the Trades</div>
+    </div>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <div class="auth-tab active" onclick="switchAuthTab('login')">Sign In</div>
+        <div class="auth-tab" onclick="switchAuthTab('signup')">Create Account</div>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="login-form" class="auth-form">
+        <div>
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="you@yourbusiness.com" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div>
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div class="auth-error" id="login-error"></div>
+        <button class="auth-btn" id="login-btn" onclick="doLogin()">Sign In →</button>
+        <div class="auth-divider">Your data is private and secure</div>
+      </div>
+
+      <!-- SIGNUP -->
+      <div id="signup-form" class="auth-form" style="display:none">
+        <div class="form-grid" style="gap:12px">
+          <div>
+            <label>Your Name</label>
+            <input type="text" id="signup-name" placeholder="Mike Russo">
+          </div>
+          <div>
+            <label>Business Name</label>
+            <input type="text" id="signup-biz" placeholder="Russo Plumbing LLC">
+          </div>
+        </div>
+        <div>
+          <label>Email</label>
+          <input type="email" id="signup-email" placeholder="you@yourbusiness.com">
+        </div>
+        <div>
+          <label>Password</label>
+          <input type="password" id="signup-password" placeholder="At least 6 characters">
+        </div>
+        <div class="auth-error" id="signup-error"></div>
+        <button class="auth-btn" id="signup-btn" onclick="doSignup()">Create My Account →</button>
+        <div class="auth-divider">Free to start — no credit card needed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app-shell">
+
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">TradeMate</div>
+      <div class="logo-sub">Field Management</div>
+    </div>
+    <div class="nav">
+      <div class="nav-item active" onclick="showPage('dashboard', this)">
+        <span class="nav-icon">⚡</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('quotes', this)">
+        <span class="nav-icon">📋</span> Quotes
+        <span class="nav-badge" id="badge-quotes" style="display:none">0</span>
+      </div>
+      <div class="nav-item" onclick="showPage('schedule', this)">
+        <span class="nav-icon">📅</span> Schedule
+      </div>
+      <div class="nav-item" onclick="showPage('invoices', this)">
+        <span class="nav-icon">💰</span> Invoices
+        <span class="nav-badge red" id="badge-invoices" style="display:none">0</span>
+      </div>
+      <div class="nav-item" onclick="showPage('customers', this)">
+        <span class="nav-icon">👥</span> Customers
+      </div>
+      <div class="nav-item" onclick="showPage('followup', this)">
+        <span class="nav-icon">🔔</span> Follow-Up
+      </div>
+      <div class="nav-item" onclick="showPage('pricebook', this)">
+        <span class="nav-icon">📦</span> Price Book
+      </div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="user-block" onclick="confirmSignOut()">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="user-name-display">Loading...</div>
+          <div class="user-role" id="user-biz-display"></div>
+        </div>
+      </div>
+      <div class="signout-hint">Click to sign out</div>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="dash-greeting">Good Morning 👋</div>
+          <div class="page-sub" id="dash-date"></div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('new-quote-modal')">+ New Quote</button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">This Month</div>
+          <div class="stat-value" id="stat-month">$0</div>
+          <div class="stat-delta">Total invoiced</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Collected</div>
+          <div class="stat-value" id="stat-collected">$0</div>
+          <div class="stat-delta">Paid invoices</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Outstanding</div>
+          <div class="stat-value" id="stat-outstanding">$0</div>
+          <div class="stat-delta down" id="stat-overdue-label">0 overdue</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Quotes Pending</div>
+          <div class="stat-value" id="stat-quotes">$0</div>
+          <div class="stat-delta" id="stat-quotes-label">0 awaiting approval</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Recent Quotes</div>
+          <div id="dash-quotes"><div class="data-loading">Loading...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recent Activity</div>
+          <div id="dash-activity"><div class="data-loading">Loading...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUOTES -->
+    <div id="page-quotes" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Quotes</div>
+          <div class="page-sub">Send professional estimates in under 2 minutes</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('new-quote-modal')">+ New Quote</button>
+      </div>
+      <div class="card">
+        <div id="quotes-list"><div class="data-loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- SCHEDULE -->
+    <div id="page-schedule" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Schedule</div>
+          <div class="page-sub" id="schedule-week-label">Your upcoming jobs</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('new-job-modal')">+ Add Job</button>
+      </div>
+      <div class="card">
+        <div id="schedule-list"><div class="data-loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- INVOICES -->
+    <div id="page-invoices" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Invoices</div>
+          <div class="page-sub">Get paid faster — one tap to send</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('new-invoice-modal')">+ New Invoice</button>
+      </div>
+      <div class="stats-row" style="grid-template-columns: repeat(3,1fr)">
+        <div class="stat-card green">
+          <div class="stat-label">Paid This Month</div>
+          <div class="stat-value" id="inv-paid">$0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pending</div>
+          <div class="stat-value" id="inv-pending">$0</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Overdue</div>
+          <div class="stat-value" id="inv-overdue">$0</div>
+        </div>
+      </div>
+      <div class="card">
+        <div id="invoices-list"><div class="data-loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div id="page-customers" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Customers</div>
+          <div class="page-sub">Your full customer history, always in your pocket</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('new-customer-modal')">+ Add Customer</button>
+      </div>
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search by name, address, or phone..." oninput="filterCustomers(this.value)">
+      </div>
+      <div class="card" id="customer-list">
+        <div class="data-loading">Loading...</div>
+      </div>
+    </div>
+
+    <!-- FOLLOW-UP -->
+    <div id="page-followup" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Follow-Up</div>
+          <div class="page-sub">Bring customers back — automatically</div>
+        </div>
+        <button class="btn btn-primary" onclick="showToast('All reminders queued! 🎉')">Send All Now</button>
+      </div>
+      <div class="card" style="margin-bottom:20px;background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2)">
+        <div style="display:flex;gap:16px;align-items:center">
+          <span style="font-size:32px">🤖</span>
+          <div>
+            <div style="font-weight:700;font-size:15px;color:var(--amber)">Auto-Reminders are ON</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:2px">Customers who haven't had a job in 6+ months are surfaced here automatically.</div>
+          </div>
+          <span class="badge badge-paid" style="margin-left:auto;font-size:12px;padding:5px 14px">Active</span>
+        </div>
+      </div>
+      <div id="followup-list"><div class="data-loading">Loading customers...</div></div>
+    </div>
+
+    <!-- PRICE BOOK -->
+    <div id="page-pricebook" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Price Book 📦</div>
+          <div class="page-sub">Auto-learned from every quote — yours alone, nobody else sees it</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('new-pb-item-modal')">+ Add Item</button>
+      </div>
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search items..." oninput="renderPriceBook(this.value)" id="pb-search">
+      </div>
+      <div class="card">
+        <div id="pb-list-inner"></div>
+      </div>
+    </div>
+
+  </main>
+</div><!-- end app-shell -->
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- NEW QUOTE -->
+<div class="modal-overlay" id="new-quote-modal">
+  <div class="modal" style="width:600px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div class="modal-title" style="margin-bottom:0">New Quote ⚡</div>
+      <span class="saved-pill" id="pb-saved-pill">✓ Saved to Price Book</span>
+    </div>
+    <div class="form-grid">
+      <div class="form-group span2">
+        <label>Customer</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="q-customer-select" onchange="prefillCustomerPhone()" style="flex:1">
+            <option value="">— Select a customer —</option>
+          </select>
+          <button class="btn btn-ghost" style="white-space:nowrap;padding:9px 14px;font-size:13px" onclick="openQuickAdd()" type="button">+ New Customer</button>
+        </div>
+        <div id="q-selected-customer" style="display:none;margin-top:8px;background:var(--steel-light);border-radius:8px;padding:10px 14px;font-size:13px">
+          <span id="q-selected-customer-info" style="color:var(--muted)"></span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Job Date</label>
+        <input type="date" id="q-date">
+      </div>
+      <div class="form-group">
+        <label>Job Description</label>
+        <input type="text" id="q-job-desc" placeholder="e.g. Water heater replacement">
+      </div>
+    </div>
+    <div style="margin-top:20px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <label>Line Items</label>
+        <span style="font-size:11px;color:var(--amber)">📦 Type to search your Price Book</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 80px 100px 40px;gap:8px;margin-bottom:6px;padding:0 2px">
+        <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Description</span>
+        <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Qty</span>
+        <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Unit $</span>
+        <span></span>
+      </div>
+      <div id="line-items"></div>
+      <button class="add-line-btn" onclick="addLine()">+ Add line item</button>
+    </div>
+    <div class="quote-total">
+      <span style="font-size:14px;color:var(--muted);font-family:'DM Sans';font-weight:500;letter-spacing:0">TOTAL</span>
+      <span id="quote-grand-total">$0.00</span>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('new-quote-modal')">Cancel</button>
+      <button class="btn btn-ghost" onclick="saveQuote('draft')">Save Draft</button>
+      <button class="btn btn-primary" id="send-quote-btn" onclick="saveQuote('sent')">Send to Customer 📱</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW JOB -->
+<div class="modal-overlay" id="new-job-modal">
+  <div class="modal">
+    <div class="modal-title">Schedule a Job 📅</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Customer</label>
+        <select id="job-customer-select">
+          <option value="">— Select Customer —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Job Type</label>
+        <select id="job-type">
+          <option>Service Call</option>
+          <option>Installation</option>
+          <option>Inspection</option>
+          <option>Emergency</option>
+          <option>Estimate</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="job-date">
+      </div>
+      <div class="form-group">
+        <label>Start Time</label>
+        <input type="time" id="job-time" value="09:00">
+      </div>
+      <div class="form-group span2">
+        <label>Job Description</label>
+        <input type="text" id="job-desc" placeholder="Brief description of the work">
+      </div>
+      <div class="form-group span2">
+        <label>Notes</label>
+        <textarea id="job-notes" placeholder="Gate code, dogs, special instructions..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('new-job-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveJob()">Add to Schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW INVOICE -->
+<div class="modal-overlay" id="new-invoice-modal">
+  <div class="modal">
+    <div class="modal-title">Create Invoice 💰</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Customer</label>
+        <select id="inv-customer-select">
+          <option value="">— Select Customer —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Due Date</label>
+        <input type="date" id="inv-due-date">
+      </div>
+      <div class="form-group span2">
+        <label>Job / Description</label>
+        <input type="text" id="inv-desc" placeholder="Water heater install">
+      </div>
+      <div class="form-group span2">
+        <label>Amount ($)</label>
+        <input type="number" id="inv-amount" placeholder="0.00">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('new-invoice-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInvoice()">Send Invoice 💳</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW CUSTOMER -->
+<div class="modal-overlay" id="new-customer-modal">
+  <div class="modal">
+    <div class="modal-title">Add Customer 👤</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>First Name</label>
+        <input type="text" id="cust-first" placeholder="John">
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <input type="text" id="cust-last" placeholder="Smith">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" id="cust-phone" placeholder="(555) 000-0000">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="cust-email" placeholder="john@email.com">
+      </div>
+      <div class="form-group span2">
+        <label>Service Address</label>
+        <input type="text" id="cust-address" placeholder="123 Main St, Nashville TN">
+      </div>
+      <div class="form-group span2">
+        <label>Notes</label>
+        <textarea id="cust-notes" placeholder="Gate code, dogs, special instructions..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('new-customer-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK ADD CUSTOMER (from within quote) -->
+<div class="modal-overlay" id="quick-add-customer-modal" style="z-index:1100">
+  <div class="modal" style="width:480px">
+    <div class="modal-title">Quick Add Customer 👤</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>First Name *</label>
+        <input type="text" id="qc-first" placeholder="John">
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <input type="text" id="qc-last" placeholder="Smith">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" id="qc-phone" placeholder="(555) 000-0000">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="qc-email" placeholder="john@email.com">
+      </div>
+      <div class="form-group span2">
+        <label>Service Address</label>
+        <input type="text" id="qc-address" placeholder="123 Main St, Nashville TN">
+      </div>
+      <div class="form-group span2">
+        <label>Notes</label>
+        <textarea id="qc-notes" placeholder="Gate code, dogs, anything useful..." style="min-height:60px"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('quick-add-customer-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="quickSaveCustomer()">Save & Select Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW PRICE BOOK ITEM -->
+<div class="modal-overlay" id="new-pb-item-modal">
+  <div class="modal" style="width:440px">
+    <div class="modal-title">Add to Price Book 📦</div>
+    <div class="form-grid single">
+      <div class="form-group">
+        <label>Item Name</label>
+        <input type="text" id="pb-new-name" placeholder="e.g. Labor - Standard Rate">
+      </div>
+      <div class="form-group">
+        <label>Default Price ($)</label>
+        <input type="number" id="pb-new-price" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="pb-new-cat">
+          <option value="Labor">Labor</option>
+          <option value="Materials">Materials</option>
+          <option value="Equipment">Equipment</option>
+          <option value="Fees">Fees</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('new-pb-item-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="manualAddPbItem()">Save to Price Book</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✅</span>
+  <span id="toast-msg">Done!</span>
+</div>
+
+<!-- ===================== SCRIPT ===================== -->
+<script>
+// ============================================================
+// ⚙️  CONFIG — PASTE YOUR SUPABASE KEYS HERE
+//     Get these from: supabase.com → your project → Settings → API
+// ============================================================
+const SUPABASE_URL  = 'https://zgkbmfqrlevfsrawohww.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpna2JtZnFybGV2ZnNyYXdvaHd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NTgyNTcsImV4cCI6MjA4NzAzNDI1N30.elaOGXFgsbQU5imzWHvDNaxA-ZdqT17AMElcr2JwxZA';
+
+// ============================================================
+// INIT
+// ============================================================
+let sb, currentUser, userProfile;
+
+async function init() {
+  // If keys not set, run in demo mode
+  if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+    runDemoMode();
+    return;
+  }
+
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    await loadUserProfile();
+    showApp();
+  } else {
+    showAuth();
+  }
+
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN') {
+      currentUser = session.user;
+      await loadUserProfile();
+      showApp();
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      userProfile = null;
+      showAuth();
+    }
+  });
+}
+
+// ============================================================
+// AUTH SCREENS
+// ============================================================
+function showAuth() {
+  hide('loading-screen'); hide('app-shell');
+  show('auth-screen');
+}
+
+function showApp() {
+  hide('loading-screen'); hide('auth-screen');
+  show('app-shell');
+  setDashboardGreeting();
+  loadAllData();
+}
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('login-form').style.display = tab === 'login' ? 'flex' : 'none';
+  document.getElementById('signup-form').style.display = tab === 'signup' ? 'flex' : 'none';
+}
+
+async function doLogin() {
+  const email = v('login-email'), pw = v('login-password');
+  if (!email || !pw) { authError('login', 'Please fill in all fields'); return; }
+  setAuthLoading('login-btn', true);
+  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+  setAuthLoading('login-btn', false);
+  if (error) authError('login', error.message);
+}
+
+async function doSignup() {
+  const name  = v('signup-name');
+  const biz   = v('signup-biz');
+  const email = v('signup-email');
+  const pw    = v('signup-password');
+  if (!name || !biz || !email || !pw) { authError('signup', 'Please fill in all fields'); return; }
+  if (pw.length < 6) { authError('signup', 'Password must be at least 6 characters'); return; }
+  setAuthLoading('signup-btn', true);
+  const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { name, business_name: biz } } });
+  if (error) { authError('signup', error.message); setAuthLoading('signup-btn', false); return; }
+  // Insert profile row
+  if (data.user) {
+    await sb.from('profiles').upsert({ id: data.user.id, name, business_name: biz });
+  }
+  setAuthLoading('signup-btn', false);
+  showToast('Account created! Welcome to TradeMate 🎉');
+}
+
+async function loadUserProfile() {
+  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  userProfile = data || { name: currentUser.email, business_name: '' };
+  const initials = (userProfile.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name-display').textContent = userProfile.name || currentUser.email;
+  document.getElementById('user-biz-display').textContent = userProfile.business_name || '';
+}
+
+async function confirmSignOut() {
+  if (confirm('Sign out of TradeMate?')) {
+    await sb.auth.signOut();
+  }
+}
+
+function authError(form, msg) {
+  const el = document.getElementById(form + '-error');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function setAuthLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Please wait...' : (btnId === 'login-btn' ? 'Sign In →' : 'Create My Account →');
+}
+
+// ============================================================
+// DATA — Supabase reads/writes
+// All queries are filtered by user_id so each contractor
+// sees ONLY their own data.
+// ============================================================
+let allCustomers = [], allQuotes = [], allJobs = [], allInvoices = [], priceBook = [];
+
+async function loadAllData() {
+  const uid = currentUser.id;
+  const [c, q, j, i, pb] = await Promise.all([
+    sb.from('customers').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
+    sb.from('quotes').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
+    sb.from('jobs').select('*').eq('user_id', uid).order('job_date', { ascending: true }),
+    sb.from('invoices').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
+    sb.from('price_book').select('*').eq('user_id', uid).order('times_used', { ascending: false }),
+  ]);
+  allCustomers = c.data || [];
+  allQuotes    = q.data || [];
+  allJobs      = j.data || [];
+  allInvoices  = i.data || [];
+  priceBook    = pb.data || [];
+
+  renderDashboard();
+  renderQuotes();
+  renderSchedule();
+  renderInvoices();
+  renderCustomers();
+  renderFollowUp();
+  renderPriceBook();
+  populateCustomerDropdowns();
+  updateBadges();
+}
+
+// ---- CUSTOMERS ----
+async function saveCustomer() {
+  const first = v('cust-first'), last = v('cust-last');
+  if (!first) { showToast('Please enter a first name', true); return; }
+  const { error } = await sb.from('customers').insert({
+    user_id:  currentUser.id,
+    name:     `${first} ${last}`.trim(),
+    phone:    v('cust-phone'),
+    email:    v('cust-email'),
+    address:  v('cust-address'),
+    notes:    v('cust-notes'),
+    total_value: 0,
+    job_count: 0
+  });
+  if (error) { showToast('Error saving customer', true); return; }
+  closeModal('new-customer-modal');
+  clearFields(['cust-first','cust-last','cust-phone','cust-email','cust-address','cust-notes']);
+  showToast('Customer saved! ✓');
+  await loadAllData();
+}
+
+function renderCustomers(filter = '') {
+  const el = document.getElementById('customer-list');
+  const list = filter
+    ? allCustomers.filter(c => (c.name + c.phone + c.address + c.email).toLowerCase().includes(filter.toLowerCase()))
+    : allCustomers;
+
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">👥</div>
+      <div class="empty-state-title">${filter ? 'No results' : 'No customers yet'}</div>
+      <div class="empty-state-sub">${filter ? 'Try a different search.' : 'Add your first customer to get started.'}</div>
+      ${!filter ? '<button class="btn btn-primary" onclick="openModal(\'new-customer-modal\')">+ Add Customer</button>' : ''}
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(c => {
+    const initials = (c.name || '?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    return `<div class="customer-item">
+      <div class="customer-avatar">${initials}</div>
+      <div>
+        <div class="customer-name">${c.name}</div>
+        <div class="customer-detail">${[c.address, c.phone, c.email].filter(Boolean).join(' • ')}</div>
+        ${c.last_job_date ? `<div class="customer-detail" style="margin-top:4px;font-size:11px;color:var(--amber)">Last job: ${fmtDate(c.last_job_date)}</div>` : ''}
+      </div>
+      <div class="customer-meta">
+        <div class="customer-value">${fmtMoney(c.total_value || 0)}</div>
+        <div class="customer-jobs">${c.job_count || 0} total jobs</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterCustomers(val) { renderCustomers(val); }
+
+// ---- QUOTES ----
+async function saveQuote(status) {
+  const items = collectLineItems();
+  if (items.length === 0) { showToast('Add at least one line item', true); return; }
+  const custId = v('q-customer-select') || null;
+  if (!custId) { showToast('Please select a customer — or click "+ New Customer" to add one', true); return; }
+  const custName = allCustomers.find(c => c.id === custId)?.name || 'Unknown';
+  const total = items.reduce((s, i) => s + (i.qty * i.price), 0);
+
+  const { error } = await sb.from('quotes').insert({
+    user_id:      currentUser.id,
+    customer_id:  custId,
+    customer_name: custName,
+    description:  v('q-job-desc'),
+    line_items:   JSON.stringify(items),
+    total,
+    status,
+    quote_date:   v('q-date') || new Date().toISOString().split('T')[0]
+  });
+
+  if (error) { showToast('Error saving quote', true); return; }
+  const newCount = await learnFromItems(items);
+  if (newCount > 0) flashSavedPill(newCount);
+  closeModal('new-quote-modal');
+  showToast(status === 'sent' ? `Quote sent to ${custName}! 📱` : 'Draft saved ✓');
+  await loadAllData();
+}
+
+function renderQuotes() {
+  const el = document.getElementById('quotes-list');
+  if (allQuotes.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📋</div>
+      <div class="empty-state-title">No quotes yet</div>
+      <div class="empty-state-sub">Create your first quote and send it to a customer in under 2 minutes.</div>
+      <button class="btn btn-primary" onclick="openModal('new-quote-modal')">+ New Quote</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML = `<table class="table">
+    <thead><tr>
+      <th>Customer</th><th>Description</th><th>Amount</th><th>Date</th><th>Status</th><th>Action</th>
+    </tr></thead>
+    <tbody>${allQuotes.map(q => `<tr>
+      <td><strong>${q.customer_name}</strong></td>
+      <td>${q.description || '—'}</td>
+      <td style="font-family:'DM Mono';color:var(--amber)">${fmtMoney(q.total)}</td>
+      <td style="color:var(--muted);font-size:13px">${fmtDate(q.quote_date)}</td>
+      <td><span class="badge badge-${q.status === 'paid' ? 'paid' : q.status === 'draft' ? 'draft' : 'pending'}">${q.status}</span></td>
+      <td>
+        ${q.status === 'sent' ? `<button class="btn btn-success btn-sm" onclick="markQuoteApproved('${q.id}')">Mark Approved</button>` : ''}
+        ${q.status === 'draft' ? `<button class="btn btn-primary btn-sm" onclick="sendQuoteFromList('${q.id}')">Send</button>` : ''}
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function markQuoteApproved(id) {
+  await sb.from('quotes').update({ status: 'approved' }).eq('id', id);
+  showToast('Quote marked as approved ✓');
+  await loadAllData();
+}
+
+async function sendQuoteFromList(id) {
+  await sb.from('quotes').update({ status: 'sent' }).eq('id', id);
+  showToast('Quote sent to customer! 📱');
+  await loadAllData();
+}
+
+// ---- JOBS ----
+async function saveJob() {
+  const custId = v('job-customer-select');
+  const date = v('job-date');
+  const desc = v('job-desc');
+  if (!date) { showToast('Please pick a date', true); return; }
+  if (!desc) { showToast('Please enter a description', true); return; }
+  const cust = allCustomers.find(c => c.id === custId);
+
+  const { error } = await sb.from('jobs').insert({
+    user_id:       currentUser.id,
+    customer_id:   custId || null,
+    customer_name: cust?.name || 'Unknown',
+    customer_address: cust?.address || '',
+    job_type:      v('job-type'),
+    description:   desc,
+    job_date:      date,
+    start_time:    v('job-time') || '09:00',
+    notes:         v('job-notes'),
+    status:        'scheduled'
+  });
+
+  if (error) { showToast('Error saving job', true); return; }
+  closeModal('new-job-modal');
+  clearFields(['job-desc','job-notes']);
+  showToast('Job added to schedule ✓');
+  await loadAllData();
+}
+
+function renderSchedule() {
+  const el = document.getElementById('schedule-list');
+  if (allJobs.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📅</div>
+      <div class="empty-state-title">Schedule is empty</div>
+      <div class="empty-state-sub">Add your first job to get started.</div>
+      <button class="btn btn-primary" onclick="openModal('new-job-modal')">+ Add Job</button>
+    </div>`;
+    return;
+  }
+
+  // Group by date
+  const groups = {};
+  allJobs.forEach(j => {
+    const d = j.job_date;
+    if (!groups[d]) groups[d] = [];
+    groups[d].push(j);
+  });
+
+  const today = new Date().toISOString().split('T')[0];
+  el.innerHTML = Object.keys(groups).sort().map(date => {
+    const isToday = date === today;
+    const label = isToday
+      ? `<span style="color:var(--amber)">TODAY — </span>${fmtDateFull(date)}`
+      : fmtDateFull(date);
+    return `<div class="schedule-day">
+      <div class="schedule-day-label">${label}</div>
+      ${groups[date].map(j => {
+        const cls = j.status === 'complete' ? 'complete' : j.job_type === 'Emergency' ? 'urgent' : '';
+        const badgeCls = j.status === 'complete' ? 'badge-complete' : j.status === 'scheduled' ? 'badge-scheduled' : 'badge-pending';
+        return `<div class="job-block ${cls}" onclick="markJobComplete('${j.id}', '${j.status}')">
+          <div class="job-time">${fmt12hr(j.start_time)}</div>
+          <div>
+            <div class="job-name-text">${j.description}</div>
+            <div class="job-address">${j.customer_name}${j.customer_address ? ' — ' + j.customer_address : ''}</div>
+          </div>
+          <div class="job-type-badge"><span class="badge ${badgeCls}">${j.status === 'complete' ? 'Done' : j.job_type}</span></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+async function markJobComplete(id, currentStatus) {
+  if (currentStatus === 'complete') return;
+  await sb.from('jobs').update({ status: 'complete' }).eq('id', id);
+  showToast('Job marked complete ✓');
+  await loadAllData();
+}
+
+// ---- INVOICES ----
+async function saveInvoice() {
+  const custId = v('inv-customer-select');
+  const amount = parseFloat(v('inv-amount'));
+  const dueDate = v('inv-due-date');
+  if (!amount || isNaN(amount)) { showToast('Please enter an amount', true); return; }
+  const cust = allCustomers.find(c => c.id === custId);
+
+  const { error } = await sb.from('invoices').insert({
+    user_id:       currentUser.id,
+    customer_id:   custId || null,
+    customer_name: cust?.name || 'Unknown',
+    description:   v('inv-desc'),
+    amount,
+    status:        'pending',
+    due_date:      dueDate || null,
+    invoice_date:  new Date().toISOString().split('T')[0]
+  });
+
+  if (error) { showToast('Error creating invoice', true); return; }
+  closeModal('new-invoice-modal');
+  clearFields(['inv-desc','inv-amount']);
+  showToast('Invoice sent! 💳');
+  await loadAllData();
+}
+
+function renderInvoices() {
+  const el = document.getElementById('invoices-list');
+  const today = new Date().toISOString().split('T')[0];
+
+  let paid = 0, pending = 0, overdue = 0;
+  allInvoices.forEach(i => {
+    if (i.status === 'paid') paid += i.amount;
+    else if (i.due_date && i.due_date < today) overdue += i.amount;
+    else pending += i.amount;
+  });
+
+  document.getElementById('inv-paid').textContent = fmtMoney(paid);
+  document.getElementById('inv-pending').textContent = fmtMoney(pending);
+  document.getElementById('inv-overdue').textContent = fmtMoney(overdue);
+
+  if (allInvoices.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">💰</div>
+      <div class="empty-state-title">No invoices yet</div>
+      <div class="empty-state-sub">Create your first invoice and get paid today.</div>
+      <button class="btn btn-primary" onclick="openModal('new-invoice-modal')">+ New Invoice</button>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `<table class="table">
+    <thead><tr>
+      <th>Customer</th><th>Description</th><th>Amount</th><th>Due</th><th>Status</th><th>Action</th>
+    </tr></thead>
+    <tbody>${allInvoices.map(inv => {
+      const isOverdue = inv.status !== 'paid' && inv.due_date && inv.due_date < today;
+      const statusBadge = inv.status === 'paid' ? 'badge-paid' : isOverdue ? 'badge-overdue' : 'badge-pending';
+      const statusLabel = inv.status === 'paid' ? 'Paid' : isOverdue ? 'Overdue' : 'Pending';
+      return `<tr>
+        <td><strong>${inv.customer_name}</strong></td>
+        <td>${inv.description || '—'}</td>
+        <td style="font-family:'DM Mono';color:${inv.status==='paid'?'var(--green)':isOverdue?'var(--red)':'var(--amber)'}">${fmtMoney(inv.amount)}</td>
+        <td style="color:${isOverdue?'var(--red)':'var(--muted)'};font-size:13px">${inv.due_date ? fmtDate(inv.due_date) : '—'}</td>
+        <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
+        <td>
+          ${inv.status !== 'paid' ? `<button class="btn btn-success btn-sm" onclick="markInvoicePaid('${inv.id}')">Mark Paid</button>` : ''}
+          ${isOverdue ? `<button class="btn btn-danger btn-sm" onclick="showToast('Reminder sent to ${inv.customer_name}! 📱')">Remind</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+async function markInvoicePaid(id) {
+  await sb.from('invoices').update({ status: 'paid' }).eq('id', id);
+  showToast('Invoice marked as paid ✓ 💚');
+  await loadAllData();
+}
+
+// ---- DASHBOARD ----
+function renderDashboard() {
+  const today = new Date().toISOString().split('T')[0];
+  const monthStart = today.slice(0,7) + '-01';
+
+  const monthInvoices = allInvoices.filter(i => i.invoice_date >= monthStart);
+  const monthTotal = monthInvoices.reduce((s,i) => s + i.amount, 0);
+  const collected  = monthInvoices.filter(i => i.status === 'paid').reduce((s,i) => s + i.amount, 0);
+  const outstanding = allInvoices.filter(i => i.status !== 'paid').reduce((s,i) => s + i.amount, 0);
+  const overdueCount = allInvoices.filter(i => i.status !== 'paid' && i.due_date && i.due_date < today).length;
+  const pendingQuotes = allQuotes.filter(q => q.status === 'sent');
+  const pendingQTotal = pendingQuotes.reduce((s,q) => s + q.total, 0);
+
+  document.getElementById('stat-month').textContent = fmtMoney(monthTotal);
+  document.getElementById('stat-collected').textContent = fmtMoney(collected);
+  document.getElementById('stat-outstanding').textContent = fmtMoney(outstanding);
+  document.getElementById('stat-overdue-label').textContent = `${overdueCount} overdue`;
+  document.getElementById('stat-quotes').textContent = fmtMoney(pendingQTotal);
+  document.getElementById('stat-quotes-label').textContent = `${pendingQuotes.length} awaiting approval`;
+
+  // Recent quotes
+  const dq = document.getElementById('dash-quotes');
+  const recent = allQuotes.slice(0,5);
+  if (recent.length === 0) {
+    dq.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:20px 0">No quotes yet — <a href="#" onclick="openModal('new-quote-modal');return false" style="color:var(--amber)">create your first</a></div>`;
+  } else {
+    dq.innerHTML = recent.map(q => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:600">${q.customer_name}</div>
+        <div style="font-size:12px;color:var(--muted)">${q.description || 'No description'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'DM Mono';color:var(--amber)">${fmtMoney(q.total)}</div>
+        <span class="badge badge-${q.status === 'paid' ? 'paid' : q.status === 'draft' ? 'draft' : 'pending'}" style="font-size:10px">${q.status}</span>
+      </div>
+    </div>`).join('');
+  }
+
+  // Activity feed from jobs + invoices
+  const activity = document.getElementById('dash-activity');
+  const acts = [];
+  allJobs.slice(0,3).forEach(j => acts.push({ icon:'📅', title: j.description, sub: j.customer_name, note: fmtDate(j.job_date), ts: j.created_at }));
+  allInvoices.filter(i=>i.status==='paid').slice(0,3).forEach(i => acts.push({ icon:'💰', title: 'Invoice paid', sub: `${i.customer_name} — ${fmtMoney(i.amount)}`, note: '+' + fmtMoney(i.amount), ts: i.updated_at || i.created_at }));
+  if (acts.length === 0) {
+    activity.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:20px 0">Activity will appear here as you use TradeMate.</div>`;
+  } else {
+    acts.sort((a,b) => b.ts > a.ts ? 1 : -1);
+    activity.innerHTML = acts.slice(0,6).map(a => `<div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:20px">${a.icon}</span>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${a.title}</div>
+        <div style="font-size:12px;color:var(--muted)">${a.sub}</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">${a.note}</div>
+    </div>`).join('');
+  }
+}
+
+function renderFollowUp() {
+  const el = document.getElementById('followup-list');
+  const today = new Date();
+  const sixMonthsAgo = new Date(today); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const cutoff = sixMonthsAgo.toISOString().split('T')[0];
+  const stale = allCustomers.filter(c => !c.last_job_date || c.last_job_date < cutoff);
+
+  if (stale.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">🎉</div>
+      <div class="empty-state-title">All caught up!</div>
+      <div class="empty-state-sub">No customers due for a follow-up right now.</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = stale.map(c => `<div class="followup-item">
+    <div class="followup-icon">🔧</div>
+    <div>
+      <div class="followup-name">${c.name}</div>
+      <div class="followup-reason">${c.last_job_date ? 'Last job: ' + fmtDate(c.last_job_date) : 'No jobs recorded yet'}</div>
+    </div>
+    <div class="followup-actions">
+      <button class="btn btn-primary btn-sm" onclick="showToast('Text sent to ${c.name}! ✓')">Send Text</button>
+      <button class="btn btn-ghost btn-sm" onclick="showToast('${c.name} snoozed 2 weeks')">Snooze</button>
+    </div>
+  </div>`).join('');
+}
+
+// ---- PRICE BOOK ----
+async function learnFromItems(items) {
+  let newCount = 0;
+  for (const { name, price } of items) {
+    if (!name || !price) continue;
+    const existing = priceBook.find(pb => pb.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      await sb.from('price_book').update({ times_used: (existing.times_used || 0) + 1, price }).eq('id', existing.id);
+    } else {
+      await sb.from('price_book').insert({ user_id: currentUser.id, name, price, category: 'Other', times_used: 1 });
+      newCount++;
+    }
+  }
+  return newCount;
+}
+
+function renderPriceBook(filter = '') {
+  const inner = document.getElementById('pb-list-inner');
+  if (!inner) return;
+  const filtered = filter
+    ? priceBook.filter(i => i.name.toLowerCase().includes(filter.toLowerCase()))
+    : priceBook;
+
+  if (filtered.length === 0) {
+    inner.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📦</div>
+      <div class="empty-state-title">${filter ? 'No items match' : 'Price Book is empty'}</div>
+      <div class="empty-state-sub">${filter ? 'Try a different search.' : 'Items are added automatically when you build quotes, or add them manually.'}</div>
+      ${!filter ? '<button class="btn btn-primary" onclick="openModal(\'new-pb-item-modal\')">+ Add First Item</button>' : ''}
+    </div>`;
+    return;
+  }
+
+  const cats = { Labor:'🔨', Materials:'🪛', Equipment:'⚙️', Fees:'📄', Other:'📦' };
+  const groups = {};
+  filtered.forEach(i => {
+    if (!groups[i.category]) groups[i.category] = [];
+    groups[i.category].push(i);
+  });
+
+  inner.innerHTML = Object.keys(cats).map(cat => {
+    if (!groups[cat]) return '';
+    return `<div class="pb-category">${cats[cat]} ${cat}</div>` +
+      groups[cat].sort((a,b) => (b.times_used||0) - (a.times_used||0)).map(item => `
+        <div class="pb-item">
+          <div class="pb-icon">${cats[item.category] || '📦'}</div>
+          <div style="flex:1">
+            <div class="pb-name">${item.name}</div>
+            <div class="pb-meta">Used ${item.times_used || 0}× in quotes</div>
+          </div>
+          <div>
+            <div class="pb-price">${fmtMoney(item.price)}</div>
+            <div class="pb-used" style="text-align:right">per unit</div>
+          </div>
+          <button class="pb-edit-btn" onclick="editPbItem('${item.id}', '${escQ(item.name)}', ${item.price})">Edit</button>
+          <button class="pb-edit-btn" style="color:var(--red);border-color:rgba(239,68,68,0.2)" onclick="deletePbItem('${item.id}')">✕</button>
+        </div>`).join('');
+  }).join('');
+}
+
+async function manualAddPbItem() {
+  const name = v('pb-new-name'), price = parseFloat(v('pb-new-price')), cat = v('pb-new-cat');
+  if (!name) { showToast('Please enter an item name', true); return; }
+  if (isNaN(price) || price < 0) { showToast('Please enter a valid price', true); return; }
+  await sb.from('price_book').upsert({ user_id: currentUser.id, name, price, category: cat, times_used: 0 }, { onConflict: 'user_id,name' });
+  document.getElementById('pb-new-name').value = '';
+  document.getElementById('pb-new-price').value = '';
+  closeModal('new-pb-item-modal');
+  showToast(`"${name}" saved to Price Book ✓`);
+  await loadAllData();
+}
+
+async function deletePbItem(id) {
+  await sb.from('price_book').delete().eq('id', id);
+  showToast('Item removed');
+  await loadAllData();
+}
+
+async function editPbItem(id, name, oldPrice) {
+  const newPrice = prompt(`Update price for "${name}":`, oldPrice);
+  if (newPrice === null) return;
+  const parsed = parseFloat(newPrice);
+  if (isNaN(parsed)) { showToast('Invalid price', true); return; }
+  await sb.from('price_book').update({ price: parsed }).eq('id', id);
+  showToast(`"${name}" updated ✓`);
+  await loadAllData();
+}
+
+// ---- QUOTE AUTOCOMPLETE ----
+function initQuoteModal() {
+  document.getElementById('line-items').innerHTML = '';
+  document.getElementById('q-customer-select').value = '';
+  document.getElementById('q-selected-customer').style.display = 'none';
+  addLine(); addLine();
+  updateGrandTotal();
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('q-date').value = today;
+  populateCustomerDropdowns();
+}
+
+function addLine(descVal='', qtyVal=1, priceVal='') {
+  const container = document.getElementById('line-items');
+  const uid = 'li' + Date.now() + Math.floor(Math.random()*1000);
+  const wrap = document.createElement('div');
+  wrap.className = 'line-item';
+  wrap.innerHTML = `
+    <div class="ac-wrapper">
+      <input class="li-desc" type="text" placeholder="Type to search price book..." value="${escQ(descVal)}"
+        autocomplete="off" oninput="handleDescInput(this)" onfocus="handleDescInput(this)" onblur="scheduleClose(this)">
+      <div class="ac-dropdown" id="ac-${uid}"></div>
+    </div>
+    <input class="li-qty" type="number" min="0" step="any" placeholder="1" value="${qtyVal}" oninput="updateGrandTotal()">
+    <input class="li-price" type="number" min="0" step="any" placeholder="0.00" value="${priceVal}" oninput="updateGrandTotal()">
+    <button class="remove-line" onclick="removeLine(this)">×</button>`;
+  wrap.querySelector('.li-desc').dataset.dropId = 'ac-' + uid;
+  container.appendChild(wrap);
+  updateGrandTotal();
+}
+
+function removeLine(btn) { btn.closest('.line-item').remove(); updateGrandTotal(); }
+
+function updateGrandTotal() {
+  let total = 0;
+  document.querySelectorAll('#line-items .line-item').forEach(row => {
+    const qty = parseFloat(row.querySelector('.li-qty')?.value) || 0;
+    const price = parseFloat(row.querySelector('.li-price')?.value) || 0;
+    total += qty * price;
+  });
+  const el = document.getElementById('quote-grand-total');
+  if (el) el.textContent = fmtMoney(total);
+}
+
+function handleDescInput(input) {
+  const val = input.value.trim().toLowerCase();
+  const drop = document.getElementById(input.dataset.dropId);
+  if (!drop) return;
+  const matches = val.length === 0
+    ? [...priceBook].sort((a,b)=>(b.times_used||0)-(a.times_used||0)).slice(0,8)
+    : priceBook.filter(i => i.name.toLowerCase().includes(val)).sort((a,b)=>(b.times_used||0)-(a.times_used||0)).slice(0,8);
+  if (matches.length === 0) {
+    drop.innerHTML = `<div class="ac-no-results">No match — just type it, it'll save automatically ✓</div>`;
+  } else {
+    drop.innerHTML = matches.map(item => `
+      <div class="ac-item" onmousedown="selectPbItem(event,'${escQ(item.name)}',${item.price},'${input.dataset.dropId}')">
+        <span><span class="ac-item-name">${hl(item.name,val)}</span><span class="ac-item-count">(${item.times_used||0}×)</span></span>
+        <span class="ac-item-price">${fmtMoney(item.price)}</span>
+      </div>`).join('');
+  }
+  drop.classList.add('open');
+}
+
+function scheduleClose(input) {
+  setTimeout(() => {
+    const drop = document.getElementById(input.dataset.dropId);
+    if (drop) drop.classList.remove('open');
+  }, 180);
+}
+
+function selectPbItem(e, name, price, dropId) {
+  e.preventDefault();
+  const drop = document.getElementById(dropId);
+  const row = drop.closest('.line-item');
+  row.querySelector('.li-desc').value = name;
+  row.querySelector('.li-price').value = price;
+  if (!row.querySelector('.li-qty').value) row.querySelector('.li-qty').value = 1;
+  drop.classList.remove('open');
+  updateGrandTotal();
+}
+
+function collectLineItems() {
+  const items = [];
+  document.querySelectorAll('#line-items .line-item').forEach(row => {
+    const name  = row.querySelector('.li-desc')?.value.trim();
+    const qty   = parseFloat(row.querySelector('.li-qty')?.value) || 0;
+    const price = parseFloat(row.querySelector('.li-price')?.value) || 0;
+    if (name && price > 0) items.push({ name, qty, price });
+  });
+  return items;
+}
+
+function flashSavedPill(n) {
+  const pill = document.getElementById('pb-saved-pill');
+  if (!pill) return;
+  pill.textContent = n > 0 ? `✓ ${n} new item${n>1?'s':''} saved` : '✓ Price Book updated';
+  pill.classList.add('show');
+  setTimeout(() => pill.classList.remove('show'), 3000);
+}
+
+// ---- DROPDOWNS ----
+function populateCustomerDropdowns() {
+  const ids = ['q-customer-select','job-customer-select','inv-customer-select'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const current = el.value;
+    el.innerHTML = '<option value="">— Select Customer —</option>' +
+      allCustomers.map(c => `<option value="${c.id}" ${c.id===current?'selected':''}>${c.name}</option>`).join('');
+  });
+}
+
+function openQuickAdd() {
+  // Clear fields
+  clearFields(['qc-first','qc-last','qc-phone','qc-email','qc-address','qc-notes']);
+  document.getElementById('quick-add-customer-modal').classList.add('open');
+  setTimeout(() => document.getElementById('qc-first').focus(), 100);
+}
+
+async function quickSaveCustomer() {
+  const first = v('qc-first');
+  if (!first) { showToast('Please enter a first name', true); return; }
+  const name = `${first} ${v('qc-last')}`.trim();
+  const phone = v('qc-phone');
+  const email = v('qc-email');
+  const address = v('qc-address');
+  const notes = v('qc-notes');
+
+  // Save to DB (or in-memory for demo)
+  let newId;
+  if (currentUser.id === 'demo') {
+    newId = 'c' + Date.now();
+    allCustomers.unshift({ id: newId, name, phone, email, address, notes, total_value: 0, job_count: 0 });
+  } else {
+    const { data, error } = await sb.from('customers').insert({
+      user_id: currentUser.id, name, phone, email, address, notes, total_value: 0, job_count: 0
+    }).select().single();
+    if (error) { showToast('Error saving customer', true); return; }
+    newId = data.id;
+    allCustomers.unshift(data);
+  }
+
+  // Close quick add, update dropdowns, auto-select the new customer
+  closeModal('quick-add-customer-modal');
+  populateCustomerDropdowns();
+  document.getElementById('q-customer-select').value = newId;
+  showSelectedCustomer(newId);
+  showToast(`${name} added and selected ✓`);
+}
+
+function prefillCustomerPhone() {
+  const custId = v('q-customer-select');
+  showSelectedCustomer(custId);
+}
+
+function showSelectedCustomer(custId) {
+  const infoEl = document.getElementById('q-selected-customer');
+  const textEl = document.getElementById('q-selected-customer-info');
+  if (!custId) { infoEl.style.display = 'none'; return; }
+  const cust = allCustomers.find(c => c.id === custId);
+  if (!cust) { infoEl.style.display = 'none'; return; }
+  const details = [cust.phone, cust.email, cust.address].filter(Boolean).join(' · ');
+  textEl.innerHTML = `<strong style="color:var(--white)">${cust.name}</strong>${details ? ' — ' + details : ''}`;
+  infoEl.style.display = 'block';
+}
+
+// ---- BADGES ----
+function updateBadges() {
+  const pendingQ = allQuotes.filter(q => q.status === 'sent').length;
+  const today = new Date().toISOString().split('T')[0];
+  const overdueInv = allInvoices.filter(i => i.status !== 'paid' && i.due_date && i.due_date < today).length;
+  const bq = document.getElementById('badge-quotes');
+  const bi = document.getElementById('badge-invoices');
+  if (pendingQ > 0) { bq.textContent = pendingQ; bq.style.display = ''; } else { bq.style.display = 'none'; }
+  if (overdueInv > 0) { bi.textContent = overdueInv; bi.style.display = ''; } else { bi.style.display = 'none'; }
+}
+
+// ---- DASHBOARD GREETING ----
+function setDashboardGreeting() {
+  const h = new Date().getHours();
+  const greeting = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
+  const name = userProfile?.name?.split(' ')[0] || '';
+  document.getElementById('dash-greeting').textContent = `${greeting}${name ? ', ' + name : ''} 👋`;
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+  document.getElementById('dash-date').textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+}
+
+// ============================================================
+// DEMO MODE — runs when Supabase keys not yet configured
+// Shows the full app with sample data so you can demo it
+// ============================================================
+function runDemoMode() {
+  currentUser = { id: 'demo', email: 'demo@trademate.app' };
+  userProfile  = { name: 'Mike Russo', business_name: 'Russo Plumbing LLC' };
+  allCustomers = [
+    { id:'c1', name:'Tom Bradley',   phone:'(555) 102-4433', email:'tom@email.com',   address:'142 Oak St',   total_value:3840, job_count:6, last_job_date:'2026-02-18' },
+    { id:'c2', name:'Sarah Chen',    phone:'(555) 887-3210', email:'sarah@email.com', address:'88 Pine Ave',  total_value:2100, job_count:4, last_job_date:'2026-02-18' },
+    { id:'c3', name:'Bob Walsh',     phone:'(555) 204-1188', email:'bob@email.com',   address:'310 Maple Dr', total_value:1960, job_count:5, last_job_date:'2026-02-17' },
+    { id:'c4', name:'Linda Park',    phone:'(555) 540-7766', email:'linda@email.com', address:'55 River Rd',  total_value:4300, job_count:8, last_job_date:'2026-01-10' },
+    { id:'c5', name:'Dave Kowalski', phone:'(555) 310-5540', email:'dave@email.com',  address:'420 Elm St',   total_value:5120, job_count:9, last_job_date:'2025-08-01' },
+    { id:'c6', name:'Maria Torres',  phone:'(555) 620-3341', email:'maria@email.com', address:'7 Cedar Lane', total_value:1400, job_count:2, last_job_date:'2025-07-12' },
+  ];
+  allQuotes = [
+    { id:'q1', customer_name:'Sarah Chen',    description:'Full bathroom renovation',    total:4200, status:'sent',     quote_date:'2026-02-15' },
+    { id:'q2', customer_name:'Dave Kowalski', description:'Tankless water heater install',total:2800, status:'sent',     quote_date:'2026-02-16' },
+    { id:'q3', customer_name:'Maria Torres',  description:'Kitchen pipe reroute',         total:1400, status:'sent',     quote_date:'2026-02-17' },
+    { id:'q4', customer_name:'Tom Bradley',   description:'Water heater install',         total:1240, status:'approved', quote_date:'2026-02-10' },
+  ];
+  allJobs = [
+    { id:'j1', customer_name:'Tom Bradley', customer_address:'142 Oak St', description:'Water Heater Install', job_type:'Installation', job_date:'2026-02-18', start_time:'08:00', status:'scheduled' },
+    { id:'j2', customer_name:'Sarah Chen',  customer_address:'88 Pine Ave', description:'Drain Unclog',         job_type:'Service Call',  job_date:'2026-02-18', start_time:'11:00', status:'scheduled' },
+    { id:'j3', customer_name:'Bob Walsh',   customer_address:'310 Maple Dr', description:'Faucet Replacement',  job_type:'Service Call',  job_date:'2026-02-18', start_time:'13:30', status:'complete' },
+    { id:'j4', customer_name:'Maria Torres',customer_address:'7 Cedar Lane', description:'Pipe Inspection',      job_type:'Inspection',    job_date:'2026-02-19', start_time:'10:00', status:'scheduled' },
+  ];
+  allInvoices = [
+    { id:'i1', customer_name:'Linda Park',    description:'Emergency Leak',    amount:920,  status:'pending', due_date:'2026-02-11', invoice_date:'2026-02-04' },
+    { id:'i2', customer_name:'Dave Kowalski', description:'HVAC Service',      amount:600,  status:'pending', due_date:'2026-02-14', invoice_date:'2026-02-07' },
+    { id:'i3', customer_name:'Sarah Chen',    description:'Drain Unclog',      amount:380,  status:'pending', due_date:'2026-02-25', invoice_date:'2026-02-18' },
+    { id:'i4', customer_name:'Tom Bradley',   description:'Water Heater',      amount:1240, status:'pending', due_date:'2026-02-28', invoice_date:'2026-02-18' },
+    { id:'i5', customer_name:'Bob Walsh',     description:'Faucet Replace',    amount:480,  status:'paid',    due_date:'2026-02-12', invoice_date:'2026-02-05' },
+    { id:'i6', customer_name:'Tom Bradley',   description:'Annual Flush',      amount:180,  status:'paid',    due_date:'2026-01-20', invoice_date:'2026-01-13' },
+  ];
+  priceBook = [
+    { id:'pb1',  name:'Labor — Standard Rate',   price:120,  category:'Labor',     times_used:14 },
+    { id:'pb2',  name:'Labor — Emergency Rate',  price:180,  category:'Labor',     times_used:6  },
+    { id:'pb3',  name:'Service Call Fee',        price:85,   category:'Fees',      times_used:22 },
+    { id:'pb4',  name:'40-Gal Water Heater',     price:480,  category:'Materials', times_used:9  },
+    { id:'pb5',  name:'50-Gal Water Heater',     price:560,  category:'Materials', times_used:5  },
+    { id:'pb6',  name:'Tankless Water Heater',   price:1100, category:'Materials', times_used:3  },
+    { id:'pb7',  name:'Ball Valve',              price:28,   category:'Materials', times_used:15 },
+    { id:'pb8',  name:'Faucet — Standard',       price:95,   category:'Materials', times_used:12 },
+    { id:'pb9',  name:'Drain Snake (rental)',    price:60,   category:'Equipment', times_used:18 },
+    { id:'pb10', name:'Camera Inspection',       price:250,  category:'Equipment', times_used:6  },
+    { id:'pb11', name:'Permit Fee',              price:175,  category:'Fees',      times_used:5  },
+    { id:'pb12', name:'Disposal / Haul Away',   price:75,   category:'Fees',      times_used:7  },
+  ];
+
+  document.getElementById('user-avatar').textContent = 'MR';
+  document.getElementById('user-name-display').textContent = 'Mike Russo';
+  document.getElementById('user-biz-display').textContent = 'Russo Plumbing LLC';
+
+  // Patch write functions to be in-memory only for demo
+  window.saveCustomer  = () => { showToast('⚠️ Demo mode — add Supabase keys to save data'); closeModal('new-customer-modal'); };
+  window.saveQuote     = () => { showToast('⚠️ Demo mode — add Supabase keys to save data'); closeModal('new-quote-modal'); };
+  window.saveJob       = () => { showToast('⚠️ Demo mode — add Supabase keys to save data'); closeModal('new-job-modal'); };
+  window.saveInvoice   = () => { showToast('⚠️ Demo mode — add Supabase keys to save data'); closeModal('new-invoice-modal'); };
+  window.manualAddPbItem = () => { showToast('⚠️ Demo mode — add Supabase keys to save data'); closeModal('new-pb-item-modal'); };
+  window.markInvoicePaid = () => showToast('⚠️ Demo mode — add Supabase keys to save data');
+  window.markQuoteApproved = () => showToast('⚠️ Demo mode — add Supabase keys to save data');
+  window.markJobComplete = () => showToast('⚠️ Demo mode — add Supabase keys to save data');
+  window.learnFromItems = async () => 0;
+  window.confirmSignOut = () => showToast('⚠️ Demo mode — no session to sign out of');
+
+  hide('loading-screen');
+  show('app-shell');
+  setDashboardGreeting();
+  renderDashboard();
+  renderQuotes();
+  renderSchedule();
+  renderInvoices();
+  renderCustomers();
+  renderFollowUp();
+  renderPriceBook();
+  populateCustomerDropdowns();
+  updateBadges();
+
+  // Show demo banner
+  setTimeout(() => showToast('🟡 Demo mode — paste your Supabase keys to go live'), 800);
+}
+
+// ============================================================
+// NAV + MODALS
+// ============================================================
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  if (name === 'pricebook') renderPriceBook();
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'new-quote-modal') initQuoteModal();
+  if (id === 'new-job-modal') {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('job-date').value = today;
+    populateCustomerDropdowns();
+  }
+  if (id === 'new-invoice-modal') {
+    const due = new Date(); due.setDate(due.getDate() + 14);
+    document.getElementById('inv-due-date').value = due.toISOString().split('T')[0];
+    populateCustomerDropdowns();
+  }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+let toastTimer;
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function v(id) { return document.getElementById(id)?.value || ''; }
+function show(id) { const el = document.getElementById(id); if(el){el.style.display='';el.classList.add('visible');} }
+function hide(id) { const el = document.getElementById(id); if(el){el.classList.remove('visible');el.style.display='none';} }
+function clearFields(ids) { ids.forEach(id => { const el = document.getElementById(id); if(el) el.value=''; }); }
+function fmtMoney(n) { return '$' + (n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function fmtDate(d) { if(!d) return '—'; const [y,m,day] = d.split('-'); return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]} ${parseInt(day)}, ${y}`; }
+function fmtDateFull(d) { if(!d) return ''; const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; const dt=new Date(d+'T12:00:00'); return `${days[dt.getDay()]}, ${fmtDate(d)}`; }
+function fmt12hr(t) { if(!t) return ''; const [h,m]=t.split(':'); const hr=parseInt(h); return `${hr%12||12}:${m} ${hr<12?'AM':'PM'}`; }
+function escQ(s) { return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+function hl(text, q) { if(!q) return text; const i=text.toLowerCase().indexOf(q); if(i<0) return text; return text.slice(0,i)+`<strong style="color:var(--amber)">${text.slice(i,i+q.length)}</strong>`+text.slice(i+q.length); }
+
+// ============================================================
+// START
+// ============================================================
+init();
+</script>
+</body>
+</html>
