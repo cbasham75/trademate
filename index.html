@@ -784,25 +784,23 @@
       <span class="saved-pill" id="pb-saved-pill">✓ Saved to Price Book</span>
     </div>
     <div class="form-grid">
-      <div class="form-group">
+      <div class="form-group span2">
         <label>Customer</label>
-        <select id="q-customer-select" onchange="prefillCustomerPhone()">
-          <option value="">— Select or type below —</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Or New Customer Name</label>
-        <input type="text" id="q-new-customer" placeholder="John Smith">
-      </div>
-      <div class="form-group">
-        <label>Phone</label>
-        <input type="tel" id="q-phone" placeholder="(555) 000-0000">
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="q-customer-select" onchange="prefillCustomerPhone()" style="flex:1">
+            <option value="">— Select a customer —</option>
+          </select>
+          <button class="btn btn-ghost" style="white-space:nowrap;padding:9px 14px;font-size:13px" onclick="openQuickAdd()" type="button">+ New Customer</button>
+        </div>
+        <div id="q-selected-customer" style="display:none;margin-top:8px;background:var(--steel-light);border-radius:8px;padding:10px 14px;font-size:13px">
+          <span id="q-selected-customer-info" style="color:var(--muted)"></span>
+        </div>
       </div>
       <div class="form-group">
         <label>Job Date</label>
         <input type="date" id="q-date">
       </div>
-      <div class="form-group span2">
+      <div class="form-group">
         <label>Job Description</label>
         <input type="text" id="q-job-desc" placeholder="e.g. Water heater replacement">
       </div>
@@ -821,14 +819,105 @@
       <div id="line-items"></div>
       <button class="add-line-btn" onclick="addLine()">+ Add line item</button>
     </div>
-    <div class="quote-total">
-      <span style="font-size:14px;color:var(--muted);font-family:'DM Sans';font-weight:500;letter-spacing:0">TOTAL</span>
-      <span id="quote-grand-total">$0.00</span>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;padding:16px 0;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:14px;color:var(--muted);font-weight:400">
+          <input type="checkbox" id="q-tax-enabled" onchange="updateGrandTotal()" style="width:16px;height:16px;accent-color:var(--amber);background:var(--steel-light);border:none;border-radius:3px;cursor:pointer">
+          Apply Tax
+        </label>
+        <input type="number" id="q-tax-rate" value="10" min="0" max="100" step="0.1" oninput="updateGrandTotal()"
+          style="width:70px;padding:6px 10px;font-size:13px;text-align:center" placeholder="%">
+        <span style="color:var(--muted);font-size:13px">%</span>
+      </div>
+      <div id="q-tax-line" style="display:none;font-size:14px;color:var(--muted)">
+        Tax: <span id="q-tax-amount" style="font-family:'DM Mono';color:var(--white)">$0.00</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;font-family:'Bebas Neue';font-size:28px;letter-spacing:1px;color:var(--amber)">
+        <span style="font-size:14px;color:var(--muted);font-family:'DM Sans';font-weight:500;letter-spacing:0">TOTAL</span>
+        <span id="quote-grand-total">$0.00</span>
+      </div>
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('new-quote-modal')">Cancel</button>
       <button class="btn btn-ghost" onclick="saveQuote('draft')">Save Draft</button>
       <button class="btn btn-primary" id="send-quote-btn" onclick="saveQuote('sent')">Send to Customer 📱</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT QUOTE -->
+<div class="modal-overlay" id="edit-quote-modal">
+  <div class="modal" style="width:600px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div class="modal-title" style="margin-bottom:0">Edit Quote ✏️</div>
+      <span class="badge badge-draft" id="edit-quote-status-badge">draft</span>
+    </div>
+    <input type="hidden" id="eq-id">
+    <div class="form-grid">
+      <div class="form-group span2">
+        <label>Customer</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="eq-customer-select" onchange="showEditSelectedCustomer()" style="flex:1">
+            <option value="">— Select a customer —</option>
+          </select>
+          <button class="btn btn-ghost" style="white-space:nowrap;padding:9px 14px;font-size:13px" onclick="openQuickAddForEdit()" type="button">+ New</button>
+        </div>
+        <div id="eq-selected-customer" style="display:none;margin-top:8px;background:var(--steel-light);border-radius:8px;padding:10px 14px;font-size:13px">
+          <span id="eq-selected-customer-info" style="color:var(--muted)"></span>
+        </div>
+        <div id="eq-customer-warning" style="display:none;margin-top:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px 14px;font-size:13px;align-items:center;gap:10px">
+          <span style="font-size:16px">⚠️</span>
+          <span style="flex:1;color:var(--muted)"><strong style="color:var(--amber)" class="eq-missing-name"></strong> isn't in your customer list yet.</span>
+          <button class="btn btn-primary btn-sm eq-create-btn" type="button">+ Create Customer</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Job Date</label>
+        <input type="date" id="eq-date">
+      </div>
+      <div class="form-group">
+        <label>Job Description</label>
+        <input type="text" id="eq-job-desc" placeholder="e.g. Water heater replacement">
+      </div>
+    </div>
+    <div style="margin-top:20px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <label>Line Items</label>
+        <span style="font-size:11px;color:var(--amber)">📦 Type to search your Price Book</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 80px 100px 40px;gap:8px;margin-bottom:6px;padding:0 2px">
+        <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Description</span>
+        <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Qty</span>
+        <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Unit $</span>
+        <span></span>
+      </div>
+      <div id="eq-line-items"></div>
+      <button class="add-line-btn" onclick="addEditLine()">+ Add line item</button>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;padding:16px 0;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:14px;color:var(--muted);font-weight:400">
+          <input type="checkbox" id="eq-tax-enabled" onchange="updateEditGrandTotal()" style="width:16px;height:16px;accent-color:var(--amber);cursor:pointer">
+          Apply Tax
+        </label>
+        <input type="number" id="eq-tax-rate" value="10" min="0" max="100" step="0.1" oninput="updateEditGrandTotal()"
+          style="width:70px;padding:6px 10px;font-size:13px;text-align:center" placeholder="%">
+        <span style="color:var(--muted);font-size:13px">%</span>
+      </div>
+      <div id="eq-tax-line" style="display:none;font-size:14px;color:var(--muted)">
+        Tax: <span id="eq-tax-amount" style="font-family:'DM Mono';color:var(--white)">$0.00</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;font-family:'Bebas Neue';font-size:28px;letter-spacing:1px;color:var(--amber)">
+        <span style="font-size:14px;color:var(--muted);font-family:'DM Sans';font-weight:500;letter-spacing:0">TOTAL</span>
+        <span id="eq-grand-total">$0.00</span>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger btn-sm" onclick="deleteQuote()" style="margin-right:auto">🗑 Delete</button>
+      <button class="btn btn-ghost" onclick="closeModal('edit-quote-modal')">Cancel</button>
+      <button class="btn btn-ghost" onclick="updateQuote('draft')">Save Draft</button>
+      <button class="btn btn-success" onclick="convertToInvoice()" id="eq-convert-btn">💰 Convert to Invoice</button>
+      <button class="btn btn-primary" onclick="updateQuote('sent')">Save & Send 📱</button>
     </div>
   </div>
 </div>
@@ -899,12 +988,81 @@
       </div>
       <div class="form-group span2">
         <label>Amount ($)</label>
-        <input type="number" id="inv-amount" placeholder="0.00">
+        <input type="number" id="inv-amount" placeholder="0.00" oninput="updateInvTotal()">
+      </div>
+      <div class="form-group span2">
+        <div style="display:flex;align-items:center;gap:10px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:14px;color:var(--muted);font-weight:400">
+            <input type="checkbox" id="inv-tax-enabled" onchange="updateInvTotal()" style="width:16px;height:16px;accent-color:var(--amber);cursor:pointer">
+            Apply Tax
+          </label>
+          <input type="number" id="inv-tax-rate" value="10" min="0" max="100" step="0.1" oninput="updateInvTotal()"
+            style="width:70px;padding:6px 10px;font-size:13px;text-align:center" placeholder="%">
+          <span style="color:var(--muted);font-size:13px">%</span>
+          <span id="inv-tax-display" style="display:none;font-size:13px;color:var(--muted);margin-left:8px">Tax: <span id="inv-tax-amount" style="font-family:'DM Mono';color:var(--white)">$0.00</span></span>
+        </div>
+      </div>
+      <div class="form-group span2" id="inv-total-display" style="display:none">
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;font-family:'Bebas Neue';font-size:24px;color:var(--amber)">
+          <span style="font-size:13px;font-family:'DM Sans';color:var(--muted);font-weight:500">TOTAL</span>
+          <span id="inv-grand-total">$0.00</span>
+        </div>
       </div>
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('new-invoice-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveInvoice()">Send Invoice 💳</button>
+      <button class="btn btn-primary" onclick="saveInvoice()">Create Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT INVOICE -->
+<div class="modal-overlay" id="edit-invoice-modal">
+  <div class="modal" style="width:520px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div class="modal-title" style="margin-bottom:0">Edit Invoice 💰</div>
+      <span class="badge badge-pending" id="edit-inv-status-badge">pending</span>
+    </div>
+    <input type="hidden" id="ei-id">
+    <div class="form-grid">
+      <div class="form-group span2">
+        <label>Customer</label>
+        <select id="ei-customer-select" onchange="showEditInvCustomer()" style="width:100%">
+          <option value="">— Select a customer —</option>
+        </select>
+        <div id="ei-selected-customer" style="display:none;margin-top:8px;background:var(--steel-light);border-radius:8px;padding:10px 14px;font-size:13px">
+          <span id="ei-selected-customer-info" style="color:var(--muted)"></span>
+        </div>
+      </div>
+      <div class="form-group span2">
+        <label>Description</label>
+        <input type="text" id="ei-desc" placeholder="e.g. Water heater install">
+      </div>
+      <div class="form-group">
+        <label>Amount ($)</label>
+        <input type="number" id="ei-amount" placeholder="0.00" step="0.01" oninput="updateEditInvTotal()">
+      </div>
+      <div class="form-group">
+        <label>Due Date</label>
+        <input type="date" id="ei-due-date">
+      </div>
+      <div class="form-group span2" id="ei-tax-section">
+        <!-- Populated dynamically: checkbox if manual invoice, read-only if from quote -->
+      </div>
+      <div class="form-group span2">
+        <label>Status</label>
+        <select id="ei-status">
+          <option value="pending">Pending</option>
+          <option value="paid">Paid</option>
+          <option value="overdue">Overdue</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger btn-sm" onclick="deleteInvoiceFromModal()" style="margin-right:auto">🗑 Delete</button>
+      <button class="btn btn-ghost" onclick="closeModal('edit-invoice-modal')">Cancel</button>
+      <button class="btn btn-success" onclick="sendInvoiceReminder()">📱 Send Invoice</button>
+      <button class="btn btn-primary" onclick="updateInvoice()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -942,6 +1100,43 @@
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('new-customer-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK ADD CUSTOMER (from within quote) -->
+<div class="modal-overlay" id="quick-add-customer-modal" style="z-index:1100">
+  <div class="modal" style="width:480px">
+    <div class="modal-title">Quick Add Customer 👤</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>First Name *</label>
+        <input type="text" id="qc-first" placeholder="John">
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <input type="text" id="qc-last" placeholder="Smith">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" id="qc-phone" placeholder="(555) 000-0000">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="qc-email" placeholder="john@email.com">
+      </div>
+      <div class="form-group span2">
+        <label>Service Address</label>
+        <input type="text" id="qc-address" placeholder="123 Main St, Nashville TN">
+      </div>
+      <div class="form-group span2">
+        <label>Notes</label>
+        <textarea id="qc-notes" placeholder="Gate code, dogs, anything useful..." style="min-height:60px"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('quick-add-customer-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="quickSaveCustomer()">Save & Select Customer</button>
     </div>
   </div>
 </div>
@@ -1197,13 +1392,15 @@ function filterCustomers(val) { renderCustomers(val); }
 // ---- QUOTES ----
 async function saveQuote(status) {
   const items = collectLineItems();
-  if (items.length === 0) { showToast('Add at least one line item', true); return; }
+  if (items.length === 0) { showToast('Add at least one line item with a price', true); return; }
   const custId = v('q-customer-select') || null;
-  const custName = custId
-    ? allCustomers.find(c => c.id === custId)?.name
-    : v('q-new-customer');
-  if (!custName) { showToast('Please select or enter a customer', true); return; }
-  const total = items.reduce((s, i) => s + (i.qty * i.price), 0);
+  if (!custId) { showToast('Please select a customer — or click "+ New Customer" to add one', true); return; }
+  const custName = allCustomers.find(c => c.id === custId)?.name || 'Unknown';
+  const taxEnabled = document.getElementById('q-tax-enabled')?.checked;
+  const taxRate = parseFloat(document.getElementById('q-tax-rate')?.value) || 0;
+  const subtotal = items.reduce((s, i) => s + (i.qty * i.price), 0);
+  const taxAmt = taxEnabled ? subtotal * (taxRate / 100) : 0;
+  const total = subtotal + taxAmt;
 
   const { error } = await sb.from('quotes').insert({
     user_id:      currentUser.id,
@@ -1212,11 +1409,12 @@ async function saveQuote(status) {
     description:  v('q-job-desc'),
     line_items:   JSON.stringify(items),
     total,
+    tax_rate:     taxEnabled ? taxRate : 0,
     status,
     quote_date:   v('q-date') || new Date().toISOString().split('T')[0]
   });
 
-  if (error) { showToast('Error saving quote', true); return; }
+  if (error) { showToast(`Error: ${error.message}`, true); return; }
   const newCount = await learnFromItems(items);
   if (newCount > 0) flashSavedPill(newCount);
   closeModal('new-quote-modal');
@@ -1237,19 +1435,24 @@ function renderQuotes() {
   }
   el.innerHTML = `<table class="table">
     <thead><tr>
-      <th>Customer</th><th>Description</th><th>Amount</th><th>Date</th><th>Status</th><th>Action</th>
+      <th>Customer</th><th>Description</th><th>Amount</th><th>Date</th><th>Status</th><th>Actions</th>
     </tr></thead>
-    <tbody>${allQuotes.map(q => `<tr>
-      <td><strong>${q.customer_name}</strong></td>
-      <td>${q.description || '—'}</td>
-      <td style="font-family:'DM Mono';color:var(--amber)">${fmtMoney(q.total)}</td>
-      <td style="color:var(--muted);font-size:13px">${fmtDate(q.quote_date)}</td>
-      <td><span class="badge badge-${q.status === 'paid' ? 'paid' : q.status === 'draft' ? 'draft' : 'pending'}">${q.status}</span></td>
-      <td>
-        ${q.status === 'sent' ? `<button class="btn btn-success btn-sm" onclick="markQuoteApproved('${q.id}')">Mark Approved</button>` : ''}
-        ${q.status === 'draft' ? `<button class="btn btn-primary btn-sm" onclick="sendQuoteFromList('${q.id}')">Send</button>` : ''}
-      </td>
-    </tr>`).join('')}</tbody>
+    <tbody>${allQuotes.map(q => {
+      const badgeCls = q.status === 'approved' ? 'badge-paid' : q.status === 'draft' ? 'badge-draft' : 'badge-pending';
+      return `<tr>
+        <td><strong>${q.customer_name}</strong></td>
+        <td>${q.description || '—'}</td>
+        <td style="font-family:'DM Mono';color:var(--amber)">${fmtMoney(q.total)}</td>
+        <td style="color:var(--muted);font-size:13px">${fmtDate(q.quote_date)}</td>
+        <td><span class="badge ${badgeCls}">${q.status}</span></td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="openEditQuote('${q.id}')">✏️ Edit</button>
+            ${q.status !== 'invoiced' ? `<button class="btn btn-danger btn-sm" onclick="confirmDeleteQuote('${q.id}')">🗑 Delete</button>` : '<span style="font-size:12px;color:var(--muted)">Invoiced</span>'}
+          </div>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
   </table>`;
 }
 
@@ -1262,6 +1465,264 @@ async function markQuoteApproved(id) {
 async function sendQuoteFromList(id) {
   await sb.from('quotes').update({ status: 'sent' }).eq('id', id);
   showToast('Quote sent to customer! 📱');
+  await loadAllData();
+}
+
+// ---- EDIT QUOTE ----
+let editingQuoteId = null;
+
+function openEditQuote(id, jumpToInvoice = false) {
+  const q = allQuotes.find(x => x.id === id);
+  if (!q) return;
+  editingQuoteId = id;
+
+  document.getElementById('eq-id').value = id;
+  document.getElementById('eq-job-desc').value = q.description || '';
+  document.getElementById('eq-date').value = q.quote_date || '';
+
+  // Status badge
+  const badge = document.getElementById('edit-quote-status-badge');
+  badge.textContent = q.status;
+  badge.className = `badge badge-${q.status === 'approved' ? 'paid' : q.status === 'draft' ? 'draft' : 'pending'}`;
+
+  // Populate customer dropdown and select current customer
+  populateCustomerDropdowns();
+  const sel = document.getElementById('eq-customer-select');
+
+  // Try matching by customer_id first, then fall back to name match
+  let matchedId = '';
+  if (q.customer_id) {
+    const byId = allCustomers.find(c => c.id === q.customer_id);
+    if (byId) matchedId = byId.id;
+  }
+  if (!matchedId && q.customer_name) {
+    const byName = allCustomers.find(c => c.name.toLowerCase() === q.customer_name.toLowerCase());
+    if (byName) matchedId = byName.id;
+  }
+  sel.value = matchedId;
+
+  // If still no match, show a banner prompting to create the customer
+  const warningEl = document.getElementById('eq-customer-warning');
+  if (!matchedId && q.customer_name) {
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = `— Select a customer —`;
+    placeholder.selected = true;
+    sel.insertBefore(placeholder, sel.firstChild);
+    warningEl.style.display = 'flex';
+    warningEl.querySelector('.eq-missing-name').textContent = q.customer_name;
+    warningEl.querySelector('.eq-create-btn').onclick = () => {
+      const parts = q.customer_name.trim().split(' ');
+      document.getElementById('qc-first').value = parts[0] || '';
+      document.getElementById('qc-last').value = parts.slice(1).join(' ') || '';
+      document.getElementById('qc-phone').value = '';
+      document.getElementById('qc-email').value = '';
+      document.getElementById('qc-address').value = '';
+      document.getElementById('qc-notes').value = '';
+      window._quickAddTarget = 'edit';
+      document.getElementById('quick-add-customer-modal').classList.add('open');
+      setTimeout(() => document.getElementById('qc-first').focus(), 100);
+    };
+  } else {
+    warningEl.style.display = 'none';
+  }
+
+  showEditSelectedCustomer();
+
+  // Populate line items
+  const container = document.getElementById('eq-line-items');
+  container.innerHTML = '';
+  let items = [];
+  try { items = typeof q.line_items === 'string' ? JSON.parse(q.line_items) : (q.line_items || []); } catch(e) {}
+  if (items.length === 0) { addEditLine(); addEditLine(); }
+  else { items.forEach(i => addEditLine(i.name, i.qty, i.price)); }
+
+  // Restore tax from saved quote
+  const savedTaxRate = parseFloat(q.tax_rate) || 0;
+  const taxEnabledEl = document.getElementById('eq-tax-enabled');
+  const taxRateEl = document.getElementById('eq-tax-rate');
+  if (taxEnabledEl) taxEnabledEl.checked = savedTaxRate > 0;
+  if (taxRateEl) taxRateEl.value = savedTaxRate > 0 ? savedTaxRate : 10;
+
+  updateEditGrandTotal();
+
+  // Show convert button only if not already invoiced
+  const convertBtn = document.getElementById('eq-convert-btn');
+  convertBtn.style.display = q.status === 'invoiced' ? 'none' : '';
+
+  // If opened via Invoice button, highlight it so user knows to click it
+  if (jumpToInvoice) {
+    convertBtn.style.animation = 'none';
+    convertBtn.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.5)';
+    setTimeout(() => convertBtn.style.boxShadow = '', 2000);
+  }
+
+  document.getElementById('edit-quote-modal').classList.add('open');
+}
+
+function showEditSelectedCustomer() {
+  const custId = document.getElementById('eq-customer-select').value;
+  const infoEl = document.getElementById('eq-selected-customer');
+  const textEl = document.getElementById('eq-selected-customer-info');
+  if (!custId) { infoEl.style.display = 'none'; return; }
+  const cust = allCustomers.find(c => c.id === custId);
+  if (!cust) { infoEl.style.display = 'none'; return; }
+  const details = [cust.phone, cust.email, cust.address].filter(Boolean).join(' · ');
+  textEl.innerHTML = `<strong style="color:var(--white)">${cust.name}</strong>${details ? ' — ' + details : ''}`;
+  infoEl.style.display = 'block';
+}
+
+function openQuickAddForEdit() {
+  clearFields(['qc-first','qc-last','qc-phone','qc-email','qc-address','qc-notes']);
+  // After save, select in edit modal instead of quote modal
+  window._quickAddTarget = 'edit';
+  document.getElementById('quick-add-customer-modal').classList.add('open');
+  setTimeout(() => document.getElementById('qc-first').focus(), 100);
+}
+
+function addEditLine(descVal='', qtyVal=1, priceVal='') {
+  const container = document.getElementById('eq-line-items');
+  const uid = 'eql' + Date.now() + Math.floor(Math.random()*1000);
+  const wrap = document.createElement('div');
+  wrap.className = 'line-item';
+  wrap.innerHTML = `
+    <div class="ac-wrapper">
+      <input class="li-desc" type="text" placeholder="Type to search price book..." value="${escQ(descVal)}"
+        autocomplete="off" oninput="handleDescInput(this)" onfocus="handleDescInput(this)" onblur="scheduleClose(this)">
+      <div class="ac-dropdown" id="ac-${uid}"></div>
+    </div>
+    <input class="li-qty" type="number" min="0" step="any" placeholder="1" value="${qtyVal}" oninput="updateEditGrandTotal()">
+    <input class="li-price" type="number" min="0" step="any" placeholder="0.00" value="${priceVal}" oninput="updateEditGrandTotal()">
+    <button class="remove-line" onclick="removeEditLine(this)">×</button>`;
+  wrap.querySelector('.li-desc').dataset.dropId = 'ac-' + uid;
+  container.appendChild(wrap);
+  updateEditGrandTotal();
+}
+
+function removeEditLine(btn) { btn.closest('.line-item').remove(); updateEditGrandTotal(); }
+
+function updateEditGrandTotal() {
+  let subtotal = 0;
+  document.querySelectorAll('#eq-line-items .line-item').forEach(row => {
+    const qty   = parseFloat(row.querySelector('.li-qty')?.value) || 0;
+    const price = parseFloat(row.querySelector('.li-price')?.value) || 0;
+    subtotal += qty * price;
+  });
+  const taxEnabled = document.getElementById('eq-tax-enabled')?.checked;
+  const taxRate = parseFloat(document.getElementById('eq-tax-rate')?.value) || 0;
+  const taxAmt = taxEnabled ? subtotal * (taxRate / 100) : 0;
+  const taxLine = document.getElementById('eq-tax-line');
+  if (taxLine) {
+    taxLine.style.display = taxEnabled ? 'block' : 'none';
+    const taxAmtEl = document.getElementById('eq-tax-amount');
+    if (taxAmtEl) taxAmtEl.textContent = fmtMoney(taxAmt);
+  }
+  const el = document.getElementById('eq-grand-total');
+  if (el) el.textContent = fmtMoney(subtotal + taxAmt);
+}
+
+function collectEditLineItems() {
+  const items = [];
+  document.querySelectorAll('#eq-line-items .line-item').forEach(row => {
+    const name  = row.querySelector('.li-desc')?.value.trim();
+    const qty   = parseFloat(row.querySelector('.li-qty')?.value) || 0;
+    const price = parseFloat(row.querySelector('.li-price')?.value) || 0;
+    if (name && price > 0) items.push({ name, qty, price });
+  });
+  return items;
+}
+
+async function updateQuote(status) {
+  const id = document.getElementById('eq-id').value;
+  const custId = document.getElementById('eq-customer-select').value;
+  if (!custId) { showToast('Please select a customer', true); return; }
+  const items = collectEditLineItems();
+  if (items.length === 0) { showToast('Add at least one line item', true); return; }
+  const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0);
+  const taxEnabled = document.getElementById('eq-tax-enabled')?.checked;
+  const taxRate = parseFloat(document.getElementById('eq-tax-rate')?.value) || 0;
+  const taxAmt = taxEnabled ? subtotal * (taxRate / 100) : 0;
+  const total = subtotal + taxAmt;
+  const custName = allCustomers.find(c => c.id === custId)?.name || 'Unknown';
+
+  const { error } = await sb.from('quotes').update({
+    customer_id:   custId,
+    customer_name: custName,
+    description:   v('eq-job-desc'),
+    line_items:    JSON.stringify(items),
+    total,
+    tax_rate:      taxEnabled ? taxRate : 0,
+    status,
+    quote_date:    v('eq-date') || new Date().toISOString().split('T')[0]
+  }).eq('id', id);
+
+  if (error) { showToast('Error updating quote', true); return; }
+  await learnFromItems(items);
+  closeModal('edit-quote-modal');
+  showToast(status === 'sent' ? `Quote sent to ${custName}! 📱` : 'Quote updated ✓');
+  await loadAllData();
+}
+
+async function convertToInvoice() {
+  const id = document.getElementById('eq-id').value;
+  const custId = document.getElementById('eq-customer-select').value;
+  const items = collectEditLineItems();
+  const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0);
+  const taxEnabled = document.getElementById('eq-tax-enabled')?.checked;
+  const taxRate = parseFloat(document.getElementById('eq-tax-rate')?.value) || 0;
+  const taxAmt = taxEnabled ? subtotal * (taxRate / 100) : 0;
+  const total = subtotal + taxAmt;
+  const custName = allCustomers.find(c => c.id === custId)?.name || 'Unknown';
+  const desc = v('eq-job-desc');
+
+  if (!custId) { showToast('Please select a customer first', true); return; }
+  if (subtotal <= 0) { showToast('Quote total must be greater than $0', true); return; }
+
+  const due = new Date(); due.setDate(due.getDate() + 14);
+  const dueDate = due.toISOString().split('T')[0];
+
+  const { error: invErr } = await sb.from('invoices').insert({
+    user_id:       currentUser.id,
+    customer_id:   custId || null,
+    customer_name: custName,
+    description:   desc,
+    amount:        total,
+    tax_rate:      taxEnabled ? taxRate : 0,
+    status:        'pending',
+    due_date:      dueDate,
+    invoice_date:  new Date().toISOString().split('T')[0]
+  });
+
+  if (invErr) { showToast(`Error: ${invErr.message}`, true); return; }
+
+  await sb.from('quotes').update({ status: 'invoiced' }).eq('id', id);
+
+  closeModal('edit-quote-modal');
+  showToast(`Invoice created for ${custName} — ${fmtMoney(total)}${taxEnabled ? ` (incl. ${taxRate}% tax)` : ''} 💰`);
+  await loadAllData();
+
+  setTimeout(() => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.textContent.includes('Invoice')) n.classList.add('active');
+    });
+    showPage('invoices', null);
+  }, 400);
+}
+
+async function confirmDeleteQuote(id) {
+  if (!confirm('Delete this quote? This cannot be undone.')) return;
+  await sb.from('quotes').delete().eq('id', id);
+  showToast('Quote deleted');
+  await loadAllData();
+}
+
+async function deleteQuote() {
+  if (!confirm('Delete this quote? This cannot be undone.')) return;
+  const id = document.getElementById('eq-id').value;
+  await sb.from('quotes').delete().eq('id', id);
+  closeModal('edit-quote-modal');
+  showToast('Quote deleted');
   await loadAllData();
 }
 
@@ -1351,6 +1812,10 @@ async function saveInvoice() {
   const amount = parseFloat(v('inv-amount'));
   const dueDate = v('inv-due-date');
   if (!amount || isNaN(amount)) { showToast('Please enter an amount', true); return; }
+  const taxEnabled = document.getElementById('inv-tax-enabled')?.checked;
+  const taxRate = parseFloat(document.getElementById('inv-tax-rate')?.value) || 0;
+  const taxAmt = taxEnabled ? amount * (taxRate / 100) : 0;
+  const totalAmount = amount + taxAmt;
   const cust = allCustomers.find(c => c.id === custId);
 
   const { error } = await sb.from('invoices').insert({
@@ -1358,7 +1823,7 @@ async function saveInvoice() {
     customer_id:   custId || null,
     customer_name: cust?.name || 'Unknown',
     description:   v('inv-desc'),
-    amount,
+    amount:        totalAmount,
     status:        'pending',
     due_date:      dueDate || null,
     invoice_date:  new Date().toISOString().split('T')[0]
@@ -1398,7 +1863,7 @@ function renderInvoices() {
 
   el.innerHTML = `<table class="table">
     <thead><tr>
-      <th>Customer</th><th>Description</th><th>Amount</th><th>Due</th><th>Status</th><th>Action</th>
+      <th>Customer</th><th>Description</th><th>Amount</th><th>Due</th><th>Status</th><th>Actions</th>
     </tr></thead>
     <tbody>${allInvoices.map(inv => {
       const isOverdue = inv.status !== 'paid' && inv.due_date && inv.due_date < today;
@@ -1411,8 +1876,10 @@ function renderInvoices() {
         <td style="color:${isOverdue?'var(--red)':'var(--muted)'};font-size:13px">${inv.due_date ? fmtDate(inv.due_date) : '—'}</td>
         <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
         <td>
-          ${inv.status !== 'paid' ? `<button class="btn btn-success btn-sm" onclick="markInvoicePaid('${inv.id}')">Mark Paid</button>` : ''}
-          ${isOverdue ? `<button class="btn btn-danger btn-sm" onclick="showToast('Reminder sent to ${inv.customer_name}! 📱')">Remind</button>` : ''}
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="openEditInvoice('${inv.id}')">✏️ Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="confirmDeleteInvoice('${inv.id}')">🗑 Delete</button>
+          </div>
         </td>
       </tr>`;
     }).join('')}</tbody>
@@ -1422,6 +1889,135 @@ function renderInvoices() {
 async function markInvoicePaid(id) {
   await sb.from('invoices').update({ status: 'paid' }).eq('id', id);
   showToast('Invoice marked as paid ✓ 💚');
+  await loadAllData();
+}
+
+// ---- EDIT INVOICE ----
+function openEditInvoice(id) {
+  const inv = allInvoices.find(x => x.id === id);
+  if (!inv) return;
+
+  document.getElementById('ei-id').value = id;
+  document.getElementById('ei-desc').value = inv.description || '';
+  document.getElementById('ei-amount').value = inv.amount || '';
+  document.getElementById('ei-due-date').value = inv.due_date || '';
+  document.getElementById('ei-status').value = inv.status || 'pending';
+
+  // Status badge
+  const today = new Date().toISOString().split('T')[0];
+  const isOverdue = inv.status !== 'paid' && inv.due_date && inv.due_date < today;
+  const badge = document.getElementById('edit-inv-status-badge');
+  badge.textContent = inv.status === 'paid' ? 'Paid' : isOverdue ? 'Overdue' : 'Pending';
+  badge.className = `badge ${inv.status === 'paid' ? 'badge-paid' : isOverdue ? 'badge-overdue' : 'badge-pending'}`;
+
+  // Populate and select customer
+  populateCustomerDropdowns();
+  const sel = document.getElementById('ei-customer-select');
+  let matchedId = '';
+  if (inv.customer_id) {
+    const byId = allCustomers.find(c => c.id === inv.customer_id);
+    if (byId) matchedId = byId.id;
+  }
+  if (!matchedId && inv.customer_name) {
+    const byName = allCustomers.find(c => c.name.toLowerCase() === inv.customer_name.toLowerCase());
+    if (byName) matchedId = byName.id;
+  }
+  sel.value = matchedId;
+  showEditInvCustomer();
+
+  // Tax section — read-only if invoice came from a quote (has tax_rate), checkbox if manual
+  const taxSection = document.getElementById('ei-tax-section');
+  const taxRate = inv.tax_rate || 0;
+  const subtotal = taxRate > 0 ? inv.amount / (1 + taxRate / 100) : inv.amount;
+  const taxAmt = inv.amount - subtotal;
+
+  if (taxRate > 0) {
+    // Read-only display — came from a quote
+    taxSection.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--steel-light);border-radius:8px;font-size:13px">
+        <span style="color:var(--muted)">Tax (${taxRate}%) — set on original quote</span>
+        <span style="font-family:'DM Mono';color:var(--amber)">${fmtMoney(taxAmt)}</span>
+      </div>`;
+  } else {
+    // Editable — manual invoice
+    taxSection.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:14px;color:var(--muted);font-weight:400">
+          <input type="checkbox" id="ei-tax-enabled" onchange="updateEditInvTotal()" style="width:16px;height:16px;accent-color:var(--amber);cursor:pointer">
+          Apply Tax
+        </label>
+        <input type="number" id="ei-tax-rate" value="10" min="0" max="100" step="0.1" oninput="updateEditInvTotal()"
+          style="width:70px;padding:6px 10px;font-size:13px;text-align:center" placeholder="%">
+        <span style="color:var(--muted);font-size:13px">%</span>
+        <span id="ei-tax-display" style="display:none;font-size:13px;color:var(--muted);margin-left:8px">Tax: <span id="ei-tax-amount" style="font-family:'DM Mono';color:var(--white)">$0.00</span></span>
+      </div>
+      <div id="ei-total-display" style="display:none;margin-top:10px">
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;font-family:'Bebas Neue';font-size:24px;color:var(--amber)">
+          <span style="font-size:13px;font-family:'DM Sans';color:var(--muted);font-weight:500">TOTAL WITH TAX</span>
+          <span id="ei-grand-total">$0.00</span>
+        </div>
+      </div>`;
+  }
+
+  document.getElementById('edit-invoice-modal').classList.add('open');
+}
+
+function showEditInvCustomer() {
+  const custId = document.getElementById('ei-customer-select').value;
+  const infoEl = document.getElementById('ei-selected-customer');
+  const textEl = document.getElementById('ei-selected-customer-info');
+  if (!custId) { infoEl.style.display = 'none'; return; }
+  const cust = allCustomers.find(c => c.id === custId);
+  if (!cust) { infoEl.style.display = 'none'; return; }
+  const details = [cust.phone, cust.email, cust.address].filter(Boolean).join(' · ');
+  textEl.innerHTML = `<strong style="color:var(--white)">${cust.name}</strong>${details ? ' — ' + details : ''}`;
+  infoEl.style.display = 'block';
+}
+
+async function updateInvoice() {
+  const id = document.getElementById('ei-id').value;
+  const custId = document.getElementById('ei-customer-select').value;
+  const amount = parseFloat(document.getElementById('ei-amount').value);
+  if (!custId) { showToast('Please select a customer', true); return; }
+  if (!amount || isNaN(amount)) { showToast('Please enter a valid amount', true); return; }
+  const custName = allCustomers.find(c => c.id === custId)?.name || 'Unknown';
+
+  const { error } = await sb.from('invoices').update({
+    customer_id:   custId,
+    customer_name: custName,
+    description:   document.getElementById('ei-desc').value,
+    amount,
+    due_date:      document.getElementById('ei-due-date').value || null,
+    status:        document.getElementById('ei-status').value,
+    updated_at:    new Date().toISOString()
+  }).eq('id', id);
+
+  if (error) { showToast(`Error: ${error.message}`, true); return; }
+  closeModal('edit-invoice-modal');
+  showToast('Invoice updated ✓');
+  await loadAllData();
+}
+
+async function sendInvoiceReminder() {
+  const id = document.getElementById('ei-id').value;
+  const inv = allInvoices.find(x => x.id === id);
+  closeModal('edit-invoice-modal');
+  showToast(`Reminder sent to ${inv?.customer_name || 'customer'}! 📱`);
+}
+
+async function deleteInvoiceFromModal() {
+  if (!confirm('Delete this invoice? This cannot be undone.')) return;
+  const id = document.getElementById('ei-id').value;
+  await sb.from('invoices').delete().eq('id', id);
+  closeModal('edit-invoice-modal');
+  showToast('Invoice deleted');
+  await loadAllData();
+}
+
+async function confirmDeleteInvoice(id) {
+  if (!confirm('Delete this invoice? This cannot be undone.')) return;
+  await sb.from('invoices').delete().eq('id', id);
+  showToast('Invoice deleted');
   await loadAllData();
 }
 
@@ -1603,6 +2199,8 @@ async function editPbItem(id, name, oldPrice) {
 // ---- QUOTE AUTOCOMPLETE ----
 function initQuoteModal() {
   document.getElementById('line-items').innerHTML = '';
+  document.getElementById('q-customer-select').value = '';
+  document.getElementById('q-selected-customer').style.display = 'none';
   addLine(); addLine();
   updateGrandTotal();
   const today = new Date().toISOString().split('T')[0];
@@ -1632,14 +2230,53 @@ function addLine(descVal='', qtyVal=1, priceVal='') {
 function removeLine(btn) { btn.closest('.line-item').remove(); updateGrandTotal(); }
 
 function updateGrandTotal() {
-  let total = 0;
+  let subtotal = 0;
   document.querySelectorAll('#line-items .line-item').forEach(row => {
     const qty = parseFloat(row.querySelector('.li-qty')?.value) || 0;
     const price = parseFloat(row.querySelector('.li-price')?.value) || 0;
-    total += qty * price;
+    subtotal += qty * price;
   });
+  const taxEnabled = document.getElementById('q-tax-enabled')?.checked;
+  const taxRate = parseFloat(document.getElementById('q-tax-rate')?.value) || 0;
+  const taxAmt = taxEnabled ? subtotal * (taxRate / 100) : 0;
+  const taxLine = document.getElementById('q-tax-line');
+  if (taxLine) {
+    taxLine.style.display = taxEnabled ? 'block' : 'none';
+    const taxAmtEl = document.getElementById('q-tax-amount');
+    if (taxAmtEl) taxAmtEl.textContent = fmtMoney(taxAmt);
+  }
   const el = document.getElementById('quote-grand-total');
-  if (el) el.textContent = fmtMoney(total);
+  if (el) el.textContent = fmtMoney(subtotal + taxAmt);
+}
+
+function updateInvTotal() {
+  const subtotal = parseFloat(document.getElementById('inv-amount')?.value) || 0;
+  const taxEnabled = document.getElementById('inv-tax-enabled')?.checked;
+  const taxRate = parseFloat(document.getElementById('inv-tax-rate')?.value) || 0;
+  const taxAmt = taxEnabled ? subtotal * (taxRate / 100) : 0;
+  const taxDisplay = document.getElementById('inv-tax-display');
+  const totalDisplay = document.getElementById('inv-total-display');
+  if (taxDisplay) taxDisplay.style.display = taxEnabled ? 'inline' : 'none';
+  if (totalDisplay) totalDisplay.style.display = taxEnabled && subtotal > 0 ? 'block' : 'none';
+  const taxAmtEl = document.getElementById('inv-tax-amount');
+  if (taxAmtEl) taxAmtEl.textContent = fmtMoney(taxAmt);
+  const totalEl = document.getElementById('inv-grand-total');
+  if (totalEl) totalEl.textContent = fmtMoney(subtotal + taxAmt);
+}
+
+function updateEditInvTotal() {
+  const subtotal = parseFloat(document.getElementById('ei-amount')?.value) || 0;
+  const taxEnabled = document.getElementById('ei-tax-enabled')?.checked;
+  const taxRate = parseFloat(document.getElementById('ei-tax-rate')?.value) || 0;
+  const taxAmt = taxEnabled ? subtotal * (taxRate / 100) : 0;
+  const taxDisplay = document.getElementById('ei-tax-display');
+  const totalDisplay = document.getElementById('ei-total-display');
+  if (taxDisplay) taxDisplay.style.display = taxEnabled ? 'inline' : 'none';
+  if (totalDisplay) totalDisplay.style.display = taxEnabled && subtotal > 0 ? 'block' : 'none';
+  const taxAmtEl = document.getElementById('ei-tax-amount');
+  if (taxAmtEl) taxAmtEl.textContent = fmtMoney(taxAmt);
+  const totalEl = document.getElementById('ei-grand-total');
+  if (totalEl) totalEl.textContent = fmtMoney(subtotal + taxAmt);
 }
 
 function handleDescInput(input) {
@@ -1700,7 +2337,7 @@ function flashSavedPill(n) {
 
 // ---- DROPDOWNS ----
 function populateCustomerDropdowns() {
-  const ids = ['q-customer-select','job-customer-select','inv-customer-select'];
+  const ids = ['q-customer-select','job-customer-select','inv-customer-select','eq-customer-select','ei-customer-select'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1710,10 +2347,65 @@ function populateCustomerDropdowns() {
   });
 }
 
+function openQuickAdd() {
+  // Clear fields
+  clearFields(['qc-first','qc-last','qc-phone','qc-email','qc-address','qc-notes']);
+  document.getElementById('quick-add-customer-modal').classList.add('open');
+  setTimeout(() => document.getElementById('qc-first').focus(), 100);
+}
+
+async function quickSaveCustomer() {
+  const first = v('qc-first');
+  if (!first) { showToast('Please enter a first name', true); return; }
+  const name = `${first} ${v('qc-last')}`.trim();
+  const phone = v('qc-phone');
+  const email = v('qc-email');
+  const address = v('qc-address');
+  const notes = v('qc-notes');
+
+  let newId;
+  if (currentUser.id === 'demo') {
+    newId = 'c' + Date.now();
+    allCustomers.unshift({ id: newId, name, phone, email, address, notes, total_value: 0, job_count: 0 });
+  } else {
+    const { data, error } = await sb.from('customers').insert({
+      user_id: currentUser.id, name, phone, email, address, notes, total_value: 0, job_count: 0
+    }).select().single();
+    if (error) { showToast('Error saving customer', true); return; }
+    newId = data.id;
+    allCustomers.unshift(data);
+  }
+
+  closeModal('quick-add-customer-modal');
+  populateCustomerDropdowns();
+
+  // Select in the right modal depending on where we came from
+  const target = window._quickAddTarget || 'new';
+  if (target === 'edit') {
+    document.getElementById('eq-customer-select').value = newId;
+    showEditSelectedCustomer();
+  } else {
+    document.getElementById('q-customer-select').value = newId;
+    showSelectedCustomer(newId);
+  }
+  window._quickAddTarget = 'new';
+  showToast(`${name} added and selected ✓`);
+}
+
 function prefillCustomerPhone() {
   const custId = v('q-customer-select');
+  showSelectedCustomer(custId);
+}
+
+function showSelectedCustomer(custId) {
+  const infoEl = document.getElementById('q-selected-customer');
+  const textEl = document.getElementById('q-selected-customer-info');
+  if (!custId) { infoEl.style.display = 'none'; return; }
   const cust = allCustomers.find(c => c.id === custId);
-  if (cust?.phone) document.getElementById('q-phone').value = cust.phone;
+  if (!cust) { infoEl.style.display = 'none'; return; }
+  const details = [cust.phone, cust.email, cust.address].filter(Boolean).join(' · ');
+  textEl.innerHTML = `<strong style="color:var(--white)">${cust.name}</strong>${details ? ' — ' + details : ''}`;
+  infoEl.style.display = 'block';
 }
 
 // ---- BADGES ----
