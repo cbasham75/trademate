@@ -1418,8 +1418,15 @@ async function saveQuote(status) {
   const newCount = await learnFromItems(items);
   if (newCount > 0) flashSavedPill(newCount);
   closeModal('new-quote-modal');
-  showToast(status === 'sent' ? `Quote sent to ${custName}! 📱` : 'Draft saved ✓');
   await loadAllData();
+  // Open send options panel
+  const saved = allQuotes.find(q => q.customer_id === custId && q.description === v('eq-job-desc')) || {};
+  const cust = allCustomers.find(c => c.id === custId) || { phone: '', email: '' };
+  const bizName = userProfile?.business_name || userProfile?.name || '';
+  const itemsText = items.map(i => `  • ${i.name}: ${fmtMoney(i.qty * i.price)}`).join('\n');
+  const msg = `Hi ${custName}, here is your quote from ${bizName}:\n\n${v('q-job-desc') || 'Job'}\n${itemsText}\n\nTotal: ${fmtMoney(total)}\n\nReply to approve or ask questions.`;
+  if (status === 'sent') openSendOptions(cust.phone, cust.email, msg, async () => {});
+  else showToast('Draft saved ✓');
 }
 
 function renderQuotes() {
@@ -1659,8 +1666,16 @@ async function updateQuote(status) {
   if (error) { showToast('Error updating quote', true); return; }
   await learnFromItems(items);
   closeModal('edit-quote-modal');
-  showToast(status === 'sent' ? `Quote sent to ${custName}! 📱` : 'Quote updated ✓');
   await loadAllData();
+  if (status === 'sent') {
+    const cust = allCustomers.find(c => c.id === custId) || { phone: '', email: '' };
+    const bizName = userProfile?.business_name || userProfile?.name || '';
+    const itemsText = items.map(i => `  • ${i.name}: ${fmtMoney(i.qty * i.price)}`).join('\n');
+    const msg = `Hi ${custName}, here is your quote from ${bizName}:\n\n${v('eq-job-desc') || 'Job'}\n${itemsText}\n\nTotal: ${fmtMoney(total)}\n\nReply to approve or ask questions.`;
+    openSendOptions(cust.phone, cust.email, msg, async () => {});
+  } else {
+    showToast('Quote updated ✓');
+  }
 }
 
 async function convertToInvoice() {
@@ -2001,8 +2016,209 @@ async function updateInvoice() {
 async function sendInvoiceReminder() {
   const id = document.getElementById('ei-id').value;
   const inv = allInvoices.find(x => x.id === id);
+  if (!inv) return;
+  const cust = allCustomers.find(c => c.id === inv.customer_id) || { phone: '', email: '' };
+  const bizName = userProfile?.business_name || userProfile?.name || 'Your contractor';
+  const msg = `Hi ${inv.customer_name}, your invoice for ${inv.description || 'recent work'} is ${fmtMoney(inv.amount)}${inv.due_date ? ', due ' + fmtDate(inv.due_date) : ''}. Please reply to arrange payment. — ${bizName}`;
   closeModal('edit-invoice-modal');
-  showToast(`Reminder sent to ${inv?.customer_name || 'customer'}! 📱`);
+  openSendOptions(cust.phone, cust.email, msg, async () => {
+    await sb.from('invoices').update({ status: 'pending' }).eq('id', id);
+    await loadAllData();
+  });
+}
+
+function sendQuoteToCustomer(quoteId) {
+  const q = allQuotes.find(x => x.id === quoteId) || {};
+  const cust = allCustomers.find(c => c.id === q.customer_id) || { phone: '', email: '' };
+  const bizName = userProfile?.business_name || userProfile?.name || 'Your contractor';
+  const itemList = (() => {
+    try {
+      const items = typeof q.line_items === 'string' ? JSON.parse(q.line_items) : (q.line_items || []);
+      return items.map(i => `  • ${i.name}: ${fmtMoney(i.qty * i.price)}`).join('\n');
+    } catch(e) { return ''; }
+  })();
+  const msg = `Hi ${q.customer_name}, here is your quote from ${bizName}:\n\n${q.description || 'Job'}\n${itemList}\n\nTotal: ${fmtMoney(q.total)}\n\nReply to approve or ask questions.`;
+  openSendOptions(cust.phone, cust.email, msg, async () => {
+    await sb.from('quotes').update({ status: 'sent' }).eq('id', quoteId);
+    await loadAllData();
+  });
+}
+
+function openSendOptions(phone, email, message, onSent) {
+  // Remove existing send panel if any
+  const existing = document.getElementById('send-options-overlay');
+  if (existing) existing.remove();
+
+  const cleanPhone = (phone || '').replace(/\D/g, '');
+  const encodedSms = encodeURIComponent(message);
+  const encodedEmail = encodeURIComponent(message);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'send-options-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);z-index:2000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--steel-mid);border:1px solid var(--border);border-radius:16px;padding:32px;width:460px;max-width:95vw;animation:modalIn 0.2s ease">
+      <div style="font-family:'Bebas Neue';font-size:28px;letter-spacing:1px;margin-bottom:8px">Send to Customer 📱</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Choose how to send — your Messages or Mail app will open with everything pre-filled.</div>
+
+      <div style="background:var(--steel-light);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--muted);margin-bottom:24px;max-height:140px;overflow-y:auto;line-height:1.6;white-space:pre-wrap">${message}</div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
+        ${cleanPhone ? `
+        <a href="sms:${cleanPhone}?body=${encodedSms}" onclick="handleSendClick(event, this)" target="_blank"
+          style="display:flex;align-items:center;gap:14px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:14px 18px;text-decoration:none;transition:all 0.15s;cursor:pointer"
+          onmouseover="this.style.background='rgba(16,185,129,0.18)'" onmouseout="this.style.background='rgba(16,185,129,0.1)'">
+          <span style="font-size:28px">💬</span>
+          <div>
+            <div style="font-weight:700;color:var(--white);font-size:15px">Send Text Message</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${phone}</div>
+          </div>
+          <span style="margin-left:auto;font-size:12px;color:var(--green);font-weight:600">RECOMMENDED</span>
+        </a>` : `
+        <div style="display:flex;align-items:center;gap:14px;background:var(--steel-light);border:1px solid var(--border);border-radius:10px;padding:14px 18px;opacity:0.5">
+          <span style="font-size:28px">💬</span>
+          <div>
+            <div style="font-weight:700;color:var(--white);font-size:15px">Send Text Message</div>
+            <div style="font-size:12px;color:var(--red);margin-top:2px">No phone number on file — add one in customer profile</div>
+          </div>
+        </div>`}
+
+        ${email ? `
+        <button onclick="sendRealEmail('${email}', \`${message.replace(/`/g,'\\`')}\`)"
+          style="display:flex;align-items:center;gap:14px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:10px;padding:14px 18px;cursor:pointer;width:100%;text-align:left;font-family:'DM Sans';transition:all 0.15s"
+          onmouseover="this.style.background='rgba(59,130,246,0.18)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'" id="email-send-btn">
+          <span style="font-size:28px">📧</span>
+          <div>
+            <div style="font-weight:700;color:var(--white);font-size:15px">Send Email</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${email}</div>
+          </div>
+        </button>` : `
+        <div style="display:flex;align-items:center;gap:14px;background:var(--steel-light);border:1px solid var(--border);border-radius:10px;padding:14px 18px;opacity:0.5">
+          <span style="font-size:28px">📧</span>
+          <div>
+            <div style="font-weight:700;color:var(--white);font-size:15px">Send Email</div>
+            <div style="font-size:12px;color:var(--red);margin-top:2px">No email on file — add one in customer profile</div>
+          </div>
+        </div>`}
+
+        <button onclick="copyToClipboard('${message.replace(/'/g,"\\'").replace(/\n/g,'\\n')}')"
+          style="display:flex;align-items:center;gap:14px;background:var(--steel-light);border:1px solid var(--border);border-radius:10px;padding:14px 18px;cursor:pointer;width:100%;text-align:left;transition:all 0.15s;font-family:'DM Sans'"
+          onmouseover="this.style.borderColor='rgba(255,255,255,0.2)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:28px">📋</span>
+          <div>
+            <div style="font-weight:700;color:var(--white);font-size:15px">Copy to Clipboard</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Paste into any app manually</div>
+          </div>
+        </button>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeSendOptions()" class="btn btn-ghost">Cancel</button>
+        <button onclick="markAsSentManually()" class="btn btn-primary">Mark as Sent ✓</button>
+      </div>
+    </div>`;
+
+  // Store callback for when user marks as sent
+  window._onSentCallback = onSent;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeSendOptions(); });
+}
+
+function handleSendClick(e, link) {
+  // Give the link a moment to open, then show mark-as-sent option
+  setTimeout(() => {
+    const btn = document.querySelector('#send-options-overlay .btn-primary');
+    if (btn) { btn.textContent = 'Mark as Sent ✓'; btn.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.4)'; }
+  }, 500);
+}
+
+function closeSendOptions() {
+  const el = document.getElementById('send-options-overlay');
+  if (el) el.remove();
+  window._onSentCallback = null;
+}
+
+async function markAsSentManually() {
+  if (window._onSentCallback) await window._onSentCallback();
+  closeSendOptions();
+  showToast('Marked as sent ✓');
+}
+
+async function sendRealEmail(toEmail, message) {
+  const btn = document.getElementById('email-send-btn');
+  if (btn) { btn.style.opacity = '0.6'; btn.querySelector('div div').textContent = 'Sending...'; }
+
+  try {
+    const bizName = userProfile?.business_name || userProfile?.name || 'Your Contractor';
+    const customerName = message.split(',')[0].replace('Hi ', '').trim();
+
+    // Build HTML email body
+    const html = `
+      <!DOCTYPE html><html><head><meta charset="utf-8">
+      <style>
+        body { font-family: -apple-system, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+        .container { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .header { background: #1a1f2e; padding: 28px 32px; }
+        .logo { font-size: 22px; font-weight: 900; color: #f59e0b; letter-spacing: 2px; }
+        .biz { font-size: 13px; color: #8892a4; margin-top: 4px; }
+        .body { padding: 32px; }
+        .greeting { font-size: 16px; color: #111; margin-bottom: 20px; }
+        .msg { background: #f8f9fa; border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 16px 20px; font-size: 15px; color: #333; line-height: 1.7; white-space: pre-wrap; }
+        .reply { font-size: 13px; color: #666; margin-top: 20px; }
+        .footer { padding: 20px 32px; border-top: 1px solid #eee; font-size: 12px; color: #999; text-align: center; }
+      </style></head><body>
+      <div class="container">
+        <div class="header"><div class="logo">TradeMate</div><div class="biz">${bizName}</div></div>
+        <div class="body">
+          <div class="greeting">Hi ${customerName},</div>
+          <div class="msg">${message.replace(/\n/g, '<br>')}</div>
+          <div class="reply">Simply reply to this email with any questions.</div>
+        </div>
+        <div class="footer">Sent via TradeMate &nbsp;·&nbsp; Built for the Trades</div>
+      </div></body></html>`;
+
+    const res = await fetch('https://eoh0ab5sf4k5r91.m.pipedream.net', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: toEmail,
+        subject: `Message from ${bizName}`,
+        html,
+        text: message,
+      }),
+    });
+
+    // Pipedream returns 200 immediately on receipt
+    if (res.ok) {
+      if (btn) {
+        btn.style.background = 'rgba(16,185,129,0.15)';
+        btn.style.borderColor = 'rgba(16,185,129,0.3)';
+        btn.style.opacity = '1';
+        btn.querySelector('div div').textContent = '✓ Email Sent!';
+      }
+      showToast(`Email sent to ${toEmail} ✓`);
+      setTimeout(async () => {
+        if (window._onSentCallback) await window._onSentCallback();
+      }, 800);
+    } else {
+      showToast('Email failed — check your Pipedream workflow', true);
+      if (btn) { btn.style.opacity = '1'; btn.querySelector('div div').textContent = 'Send Email'; }
+    }
+
+  } catch (err) {
+    console.error('sendRealEmail error:', err);
+    showToast(`Failed: ${err.message}`, true);
+    if (btn) { btn.style.opacity = '1'; btn.querySelector('div div').textContent = 'Send Email'; }
+  }
+}
+
+function copyToClipboard(text) {
+  const decoded = text.replace(/\\n/g, '\n');
+  navigator.clipboard.writeText(decoded).then(() => {
+    showToast('Copied to clipboard ✓');
+  }).catch(() => {
+    showToast('Could not copy — try manually selecting the text', true);
+  });
 }
 
 async function deleteInvoiceFromModal() {
