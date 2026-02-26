@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TradeMate — Built for the Trades</title>
+<title>Grarose — Built for the Trades</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- Supabase SDK -->
@@ -504,7 +504,7 @@
 <!-- ===================== LOADING ===================== -->
 <div id="loading-screen" class="visible">
   <div class="spinner"></div>
-  <div class="loading-text">Starting TradeMate...</div>
+  <div class="loading-text">Starting Grarose...</div>
 </div>
 
 <!-- ===================== AUTH ===================== -->
@@ -513,7 +513,7 @@
   <div class="auth-grid-lines"></div>
   <div class="auth-box">
     <div class="auth-logo">
-      <div class="auth-logo-mark">TradeMate</div>
+      <div class="auth-logo-mark">Grarose</div>
       <div class="auth-logo-sub">Built for the Trades</div>
     </div>
     <div class="auth-card">
@@ -534,7 +534,30 @@
         </div>
         <div class="auth-error" id="login-error"></div>
         <button class="auth-btn" id="login-btn" onclick="doLogin()">Sign In →</button>
+        <div style="text-align:center;margin-top:12px">
+          <span onclick="showForgotPassword()" style="font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline">Forgot your password?</span>
+        </div>
         <div class="auth-divider">Your data is private and secure</div>
+      </div>
+
+      <!-- FORGOT PASSWORD -->
+      <div id="forgot-form" class="auth-form" style="display:none">
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="font-size:18px;font-weight:700;color:var(--white);margin-bottom:6px">Reset Password</div>
+          <div style="font-size:13px;color:var(--muted)">Enter your email and we'll send you a reset link</div>
+        </div>
+        <div>
+          <label>Email</label>
+          <input type="email" id="forgot-email" placeholder="you@yourbusiness.com" onkeydown="if(event.key==='Enter')doForgotPassword()">
+        </div>
+        <div class="auth-error" id="forgot-error"></div>
+        <div id="forgot-success" style="display:none;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:12px;font-size:13px;color:var(--green);text-align:center;margin-bottom:8px">
+          ✓ Reset link sent! Check your email inbox.
+        </div>
+        <button class="auth-btn" id="forgot-btn" onclick="doForgotPassword()">Send Reset Link →</button>
+        <div style="text-align:center;margin-top:12px">
+          <span onclick="showLogin()" style="font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline">← Back to Sign In</span>
+        </div>
       </div>
 
       <!-- SIGNUP -->
@@ -570,7 +593,7 @@
 
   <nav class="sidebar">
     <div class="logo">
-      <div class="logo-mark">TradeMate</div>
+      <div class="logo-mark">Grarose</div>
       <div class="logo-sub">Field Management</div>
     </div>
     <div class="nav">
@@ -596,6 +619,9 @@
       </div>
       <div class="nav-item" onclick="showPage('pricebook', this)">
         <span class="nav-icon">📦</span> Price Book
+      </div>
+      <div class="nav-item" onclick="showPage('settings', this)">
+        <span class="nav-icon">⚙️</span> Settings
       </div>
     </div>
     <div class="sidebar-bottom">
@@ -771,6 +797,100 @@
       </div>
     </div>
 
+    <!-- SETTINGS -->
+    <div id="page-settings" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Settings ⚙️</div>
+          <div class="page-sub">Manage your account and business profile</div>
+        </div>
+      </div>
+
+      <!-- Account Info -->
+      <div class="card" style="margin-bottom:20px">
+        <div style="font-family:'Bebas Neue';font-size:20px;letter-spacing:1px;margin-bottom:20px;color:var(--amber)">Account Info</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Your Name</label>
+            <input type="text" id="set-name" placeholder="John Smith">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="set-email" placeholder="you@email.com" disabled style="opacity:0.5;cursor:not-allowed">
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <button class="btn btn-ghost btn-sm" onclick="showChangePassword()">🔑 Change Password</button>
+          <div id="change-password-section" style="display:none;margin-top:16px">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>New Password</label>
+                <input type="password" id="set-new-password" placeholder="New password">
+              </div>
+              <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" id="set-confirm-password" placeholder="Confirm password">
+              </div>
+            </div>
+            <button class="btn btn-primary" style="margin-top:8px" onclick="updatePassword()">Update Password</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Business Profile -->
+      <div class="card" style="margin-bottom:20px">
+        <div style="font-family:'Bebas Neue';font-size:20px;letter-spacing:1px;margin-bottom:20px;color:var(--amber)">Business Profile</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Business Name</label>
+            <input type="text" id="set-biz-name" placeholder="Russo Plumbing LLC">
+          </div>
+          <div class="form-group">
+            <label>Your Phone</label>
+            <input type="tel" id="set-biz-phone" placeholder="(555) 000-0000">
+          </div>
+          <div class="form-group span2">
+            <label>Business Address</label>
+            <input type="text" id="set-biz-address" placeholder="123 Main St, Nashville TN">
+          </div>
+          <div class="form-group">
+            <label>License Number</label>
+            <input type="text" id="set-biz-license" placeholder="LIC-12345">
+          </div>
+          <div class="form-group">
+            <label>Trade / Specialty</label>
+            <input type="text" id="set-biz-trade" placeholder="Plumbing, HVAC, Electrical...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="card" style="margin-bottom:20px">
+        <div style="font-family:'Bebas Neue';font-size:20px;letter-spacing:1px;margin-bottom:20px;color:var(--amber)">Notifications</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-transform:none;letter-spacing:0;font-size:15px;font-weight:400;color:var(--white)">
+            <div>
+              <div>Invoice overdue alerts</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">Get notified when an invoice goes past due date</div>
+            </div>
+            <input type="checkbox" id="set-notif-overdue" style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer">
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-transform:none;letter-spacing:0;font-size:15px;font-weight:400;color:var(--white)">
+            <div>
+              <div>Quote approved alerts</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">Get notified when a customer approves a quote</div>
+            </div>
+            <input type="checkbox" id="set-notif-approved" style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer">
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:12px">
+        <button class="btn btn-danger btn-sm" onclick="confirmSignOut()">Sign Out</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+
   </main>
 </div><!-- end app-shell -->
 
@@ -914,6 +1034,7 @@
     </div>
     <div class="form-actions">
       <button class="btn btn-danger btn-sm" onclick="deleteQuote()" style="margin-right:auto">🗑 Delete</button>
+      <button class="btn btn-ghost" onclick="printQuote()">🖨️ Print</button>
       <button class="btn btn-ghost" onclick="closeModal('edit-quote-modal')">Cancel</button>
       <button class="btn btn-ghost" onclick="updateQuote('draft')">Save Draft</button>
       <button class="btn btn-success" onclick="convertToInvoice()" id="eq-convert-btn">💰 Convert to Invoice</button>
@@ -1060,6 +1181,7 @@
     </div>
     <div class="form-actions">
       <button class="btn btn-danger btn-sm" onclick="deleteInvoiceFromModal()" style="margin-right:auto">🗑 Delete</button>
+      <button class="btn btn-ghost" onclick="printInvoice()">🖨️ Print</button>
       <button class="btn btn-ghost" onclick="closeModal('edit-invoice-modal')">Cancel</button>
       <button class="btn btn-success" onclick="sendInvoiceReminder()">📱 Send Invoice</button>
       <button class="btn btn-primary" onclick="updateInvoice()">Save Changes</button>
@@ -1100,6 +1222,45 @@
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('new-customer-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT CUSTOMER -->
+<div class="modal-overlay" id="edit-customer-modal">
+  <div class="modal">
+    <div class="modal-title">Edit Customer 👤</div>
+    <input type="hidden" id="ec-id">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>First Name</label>
+        <input type="text" id="ec-first" placeholder="John">
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <input type="text" id="ec-last" placeholder="Smith">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" id="ec-phone" placeholder="(555) 000-0000">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="ec-email" placeholder="john@email.com">
+      </div>
+      <div class="form-group span2">
+        <label>Service Address</label>
+        <input type="text" id="ec-address" placeholder="123 Main St, Nashville TN">
+      </div>
+      <div class="form-group span2">
+        <label>Notes</label>
+        <textarea id="ec-notes" placeholder="Gate code, dogs, special instructions..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger btn-sm" onclick="deleteCustomer()" style="margin-right:auto">🗑 Delete</button>
+      <button class="btn btn-ghost" onclick="closeModal('edit-customer-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="updateCustomer()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -1243,6 +1404,39 @@ function switchAuthTab(tab) {
   event.target.classList.add('active');
   document.getElementById('login-form').style.display = tab === 'login' ? 'flex' : 'none';
   document.getElementById('signup-form').style.display = tab === 'signup' ? 'flex' : 'none';
+  document.getElementById('forgot-form').style.display = 'none';
+}
+
+function showForgotPassword() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('signup-form').style.display = 'none';
+  document.getElementById('forgot-form').style.display = 'flex';
+  document.getElementById('forgot-error').textContent = '';
+  document.getElementById('forgot-success').style.display = 'none';
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+}
+
+function showLogin() {
+  document.getElementById('forgot-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'flex';
+  document.querySelectorAll('.auth-tab')[0].classList.add('active');
+}
+
+async function doForgotPassword() {
+  const email = v('forgot-email');
+  if (!email) { document.getElementById('forgot-error').textContent = 'Please enter your email'; return; }
+  const btn = document.getElementById('forgot-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://cbasham75.github.io/trademate'
+  });
+  btn.disabled = false; btn.textContent = 'Send Reset Link →';
+  if (error) {
+    document.getElementById('forgot-error').textContent = error.message;
+  } else {
+    document.getElementById('forgot-error').textContent = '';
+    document.getElementById('forgot-success').style.display = 'block';
+  }
 }
 
 async function doLogin() {
@@ -1269,7 +1463,7 @@ async function doSignup() {
     await sb.from('profiles').upsert({ id: data.user.id, name, business_name: biz });
   }
   setAuthLoading('signup-btn', false);
-  showToast('Account created! Welcome to TradeMate 🎉');
+  showToast('Account created! Welcome to Grarose 🎉');
 }
 
 async function loadUserProfile() {
@@ -1282,7 +1476,7 @@ async function loadUserProfile() {
 }
 
 async function confirmSignOut() {
-  if (confirm('Sign out of TradeMate?')) {
+  if (confirm('Sign out of Grarose?')) {
     await sb.auth.signOut();
   }
 }
@@ -1374,7 +1568,7 @@ function renderCustomers(filter = '') {
     const initials = (c.name || '?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     return `<div class="customer-item">
       <div class="customer-avatar">${initials}</div>
-      <div>
+      <div style="flex:1">
         <div class="customer-name">${c.name}</div>
         <div class="customer-detail">${[c.address, c.phone, c.email].filter(Boolean).join(' • ')}</div>
         ${c.last_job_date ? `<div class="customer-detail" style="margin-top:4px;font-size:11px;color:var(--amber)">Last job: ${fmtDate(c.last_job_date)}</div>` : ''}
@@ -1382,12 +1576,53 @@ function renderCustomers(filter = '') {
       <div class="customer-meta">
         <div class="customer-value">${fmtMoney(c.total_value || 0)}</div>
         <div class="customer-jobs">${c.job_count || 0} total jobs</div>
+        <button class="btn btn-ghost btn-sm" onclick="openEditCustomer('${c.id}')" style="margin-top:6px">✏️ Edit</button>
       </div>
     </div>`;
   }).join('');
 }
 
 function filterCustomers(val) { renderCustomers(val); }
+
+function openEditCustomer(id) {
+  const c = allCustomers.find(x => x.id === id);
+  if (!c) return;
+  const parts = (c.name || '').split(' ');
+  document.getElementById('ec-id').value = id;
+  document.getElementById('ec-first').value = parts[0] || '';
+  document.getElementById('ec-last').value = parts.slice(1).join(' ') || '';
+  document.getElementById('ec-phone').value = c.phone || '';
+  document.getElementById('ec-email').value = c.email || '';
+  document.getElementById('ec-address').value = c.address || '';
+  document.getElementById('ec-notes').value = c.notes || '';
+  document.getElementById('edit-customer-modal').classList.add('open');
+}
+
+async function updateCustomer() {
+  const id = document.getElementById('ec-id').value;
+  const first = document.getElementById('ec-first').value.trim();
+  if (!first) { showToast('Please enter a first name', true); return; }
+  const name = `${first} ${document.getElementById('ec-last').value.trim()}`.trim();
+  const phone = document.getElementById('ec-phone').value.trim();
+  const email = document.getElementById('ec-email').value.trim();
+  const address = document.getElementById('ec-address').value.trim();
+  const notes = document.getElementById('ec-notes').value.trim();
+
+  const { error } = await sb.from('customers').update({ name, phone, email, address, notes }).eq('id', id);
+  if (error) { showToast(`Error: ${error.message}`, true); return; }
+  closeModal('edit-customer-modal');
+  showToast('Customer updated ✓');
+  await loadAllData();
+}
+
+async function deleteCustomer() {
+  if (!confirm('Delete this customer? This cannot be undone.')) return;
+  const id = document.getElementById('ec-id').value;
+  await sb.from('customers').delete().eq('id', id);
+  closeModal('edit-customer-modal');
+  showToast('Customer deleted');
+  await loadAllData();
+}
 
 // ---- QUOTES ----
 async function saveQuote(status) {
@@ -1402,16 +1637,20 @@ async function saveQuote(status) {
   const taxAmt = taxEnabled ? subtotal * (taxRate / 100) : 0;
   const total = subtotal + taxAmt;
 
+  // Generate quote number: Q-001, Q-002 etc.
+  const quoteNumber = `Q-${String(allQuotes.length + 1).padStart(3, '0')}`;
+
   const { error } = await sb.from('quotes').insert({
-    user_id:      currentUser.id,
-    customer_id:  custId,
+    user_id:       currentUser.id,
+    customer_id:   custId,
     customer_name: custName,
-    description:  v('q-job-desc'),
-    line_items:   JSON.stringify(items),
+    description:   v('q-job-desc'),
+    line_items:    JSON.stringify(items),
     total,
-    tax_rate:     taxEnabled ? taxRate : 0,
+    tax_rate:      taxEnabled ? taxRate : 0,
     status,
-    quote_date:   v('q-date') || new Date().toISOString().split('T')[0]
+    quote_number:  quoteNumber,
+    quote_date:    v('q-date') || new Date().toISOString().split('T')[0]
   });
 
   if (error) { showToast(`Error: ${error.message}`, true); return; }
@@ -1442,11 +1681,12 @@ function renderQuotes() {
   }
   el.innerHTML = `<table class="table">
     <thead><tr>
-      <th>Customer</th><th>Description</th><th>Amount</th><th>Date</th><th>Status</th><th>Actions</th>
+      <th>#</th><th>Customer</th><th>Description</th><th>Amount</th><th>Date</th><th>Status</th><th>Actions</th>
     </tr></thead>
     <tbody>${allQuotes.map(q => {
       const badgeCls = q.status === 'approved' ? 'badge-paid' : q.status === 'draft' ? 'badge-draft' : 'badge-pending';
       return `<tr>
+        <td style="font-family:'DM Mono';font-size:12px;color:var(--amber)">${q.quote_number || '—'}</td>
         <td><strong>${q.customer_name}</strong></td>
         <td>${q.description || '—'}</td>
         <td style="font-family:'DM Mono';color:var(--amber)">${fmtMoney(q.total)}</td>
@@ -1833,15 +2073,19 @@ async function saveInvoice() {
   const totalAmount = amount + taxAmt;
   const cust = allCustomers.find(c => c.id === custId);
 
+  // Generate invoice number: INV-001, INV-002 etc.
+  const invoiceNumber = `INV-${String(allInvoices.length + 1).padStart(3, '0')}`;
+
   const { error } = await sb.from('invoices').insert({
-    user_id:       currentUser.id,
-    customer_id:   custId || null,
-    customer_name: cust?.name || 'Unknown',
-    description:   v('inv-desc'),
-    amount:        totalAmount,
-    status:        'pending',
-    due_date:      dueDate || null,
-    invoice_date:  new Date().toISOString().split('T')[0]
+    user_id:        currentUser.id,
+    customer_id:    custId || null,
+    customer_name:  cust?.name || 'Unknown',
+    description:    v('inv-desc'),
+    amount:         totalAmount,
+    status:         'pending',
+    due_date:       dueDate || null,
+    invoice_number: invoiceNumber,
+    invoice_date:   new Date().toISOString().split('T')[0]
   });
 
   if (error) { showToast('Error creating invoice', true); return; }
@@ -1878,13 +2122,14 @@ function renderInvoices() {
 
   el.innerHTML = `<table class="table">
     <thead><tr>
-      <th>Customer</th><th>Description</th><th>Amount</th><th>Due</th><th>Status</th><th>Actions</th>
+      <th>#</th><th>Customer</th><th>Description</th><th>Amount</th><th>Due</th><th>Status</th><th>Actions</th>
     </tr></thead>
     <tbody>${allInvoices.map(inv => {
       const isOverdue = inv.status !== 'paid' && inv.due_date && inv.due_date < today;
       const statusBadge = inv.status === 'paid' ? 'badge-paid' : isOverdue ? 'badge-overdue' : 'badge-pending';
       const statusLabel = inv.status === 'paid' ? 'Paid' : isOverdue ? 'Overdue' : 'Pending';
       return `<tr>
+        <td style="font-family:'DM Mono';font-size:12px;color:var(--amber)">${inv.invoice_number || '—'}</td>
         <td><strong>${inv.customer_name}</strong></td>
         <td>${inv.description || '—'}</td>
         <td style="font-family:'DM Mono';color:${inv.status==='paid'?'var(--green)':isOverdue?'var(--red)':'var(--amber)'}">${fmtMoney(inv.amount)}</td>
@@ -2065,8 +2310,8 @@ function openSendOptions(phone, email, message, onSent) {
 
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
         ${cleanPhone ? `
-        <a href="sms:${cleanPhone}?body=${encodedSms}" onclick="handleSendClick(event, this)" target="_blank"
-          style="display:flex;align-items:center;gap:14px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:14px 18px;text-decoration:none;transition:all 0.15s;cursor:pointer"
+        <button onclick="sendRealSMS('${phone}', \`${message.replace(/`/g,'\\`')}\`)" id="sms-send-btn"
+          style="display:flex;align-items:center;gap:14px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:14px 18px;cursor:pointer;width:100%;text-align:left;font-family:'DM Sans';transition:all 0.15s"
           onmouseover="this.style.background='rgba(16,185,129,0.18)'" onmouseout="this.style.background='rgba(16,185,129,0.1)'">
           <span style="font-size:28px">💬</span>
           <div>
@@ -2074,7 +2319,7 @@ function openSendOptions(phone, email, message, onSent) {
             <div style="font-size:12px;color:var(--muted);margin-top:2px">${phone}</div>
           </div>
           <span style="margin-left:auto;font-size:12px;color:var(--green);font-weight:600">RECOMMENDED</span>
-        </a>` : `
+        </button>` : `
         <div style="display:flex;align-items:center;gap:14px;background:var(--steel-light);border:1px solid var(--border);border-radius:10px;padding:14px 18px;opacity:0.5">
           <span style="font-size:28px">💬</span>
           <div>
@@ -2168,23 +2413,23 @@ async function sendRealEmail(toEmail, message) {
         .footer { padding: 20px 32px; border-top: 1px solid #eee; font-size: 12px; color: #999; text-align: center; }
       </style></head><body>
       <div class="container">
-        <div class="header"><div class="logo">TradeMate</div><div class="biz">${bizName}</div></div>
+        <div class="header"><div class="logo">Grarose</div><div class="biz">${bizName}</div></div>
         <div class="body">
           <div class="greeting">Hi ${customerName},</div>
           <div class="msg">${message.replace(/\n/g, '<br>')}</div>
           <div class="reply">Simply reply to this email with any questions.</div>
         </div>
-        <div class="footer">Sent via TradeMate &nbsp;·&nbsp; Built for the Trades</div>
+        <div class="footer">Sent via Grarose &nbsp;·&nbsp; Built for the Trades</div>
       </div></body></html>`;
 
-    const res = await fetch('https://eoh0ab5sf4k5r91.m.pipedream.net', {
+    const res = await fetch('https://eozcc5rn6y1f627.m.pipedream.net', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        type: 'email',
         to: toEmail,
         subject: `Message from ${bizName}`,
         html,
-        text: message,
       }),
     });
 
@@ -2209,6 +2454,46 @@ async function sendRealEmail(toEmail, message) {
     console.error('sendRealEmail error:', err);
     showToast(`Failed: ${err.message}`, true);
     if (btn) { btn.style.opacity = '1'; btn.querySelector('div div').textContent = 'Send Email'; }
+  }
+}
+
+async function sendRealSMS(toPhone, message) {
+  const btn = document.getElementById('sms-send-btn');
+  if (btn) { btn.style.opacity = '0.6'; btn.querySelector('div div').textContent = 'Sending...'; }
+
+  try {
+    const cleanPhone = toPhone.replace(/\D/g, '');
+    const formattedPhone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+
+    const res = await fetch('https://eozcc5rn6y1f627.m.pipedream.net', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'sms', to: formattedPhone, message }),
+    });
+
+    const result = await res.json();
+
+    if (res.ok && !result.error_message && !result.error) {
+      if (btn) {
+        btn.style.background = 'rgba(16,185,129,0.15)';
+        btn.style.borderColor = 'rgba(16,185,129,0.3)';
+        btn.style.opacity = '1';
+        btn.querySelector('div div').textContent = '✓ Text Sent!';
+      }
+      showToast(`Text sent to ${toPhone} ✓`);
+      setTimeout(async () => {
+        if (window._onSentCallback) await window._onSentCallback();
+      }, 800);
+    } else {
+      const errMsg = result.error_message || result.message || result.error || 'Unknown error';
+      showToast(`SMS failed: ${errMsg}`, true);
+      if (btn) { btn.style.opacity = '1'; btn.querySelector('div div').textContent = 'Send Text Message'; }
+    }
+
+  } catch (err) {
+    console.error('sendRealSMS error:', err);
+    showToast(`Failed: ${err.message}`, true);
+    if (btn) { btn.style.opacity = '1'; btn.querySelector('div div').textContent = 'Send Text Message'; }
   }
 }
 
@@ -2281,7 +2566,7 @@ function renderDashboard() {
   allJobs.slice(0,3).forEach(j => acts.push({ icon:'📅', title: j.description, sub: j.customer_name, note: fmtDate(j.job_date), ts: j.created_at }));
   allInvoices.filter(i=>i.status==='paid').slice(0,3).forEach(i => acts.push({ icon:'💰', title: 'Invoice paid', sub: `${i.customer_name} — ${fmtMoney(i.amount)}`, note: '+' + fmtMoney(i.amount), ts: i.updated_at || i.created_at }));
   if (acts.length === 0) {
-    activity.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:20px 0">Activity will appear here as you use TradeMate.</div>`;
+    activity.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:20px 0">Activity will appear here as you use Grarose.</div>`;
   } else {
     acts.sort((a,b) => b.ts > a.ts ? 1 : -1);
     activity.innerHTML = acts.slice(0,6).map(a => `<div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
@@ -2652,7 +2937,7 @@ function setDashboardGreeting() {
 // Shows the full app with sample data so you can demo it
 // ============================================================
 function runDemoMode() {
-  currentUser = { id: 'demo', email: 'demo@trademate.app' };
+  currentUser = { id: 'demo', email: 'demo@grarose.app' };
   userProfile  = { name: 'Mike Russo', business_name: 'Russo Plumbing LLC' };
   allCustomers = [
     { id:'c1', name:'Tom Bradley',   phone:'(555) 102-4433', email:'tom@email.com',   address:'142 Oak St',   total_value:3840, job_count:6, last_job_date:'2026-02-18' },
@@ -2739,6 +3024,214 @@ function showPage(name, el) {
   document.getElementById('page-' + name).classList.add('active');
   if (el) el.classList.add('active');
   if (name === 'pricebook') renderPriceBook();
+  if (name === 'settings') loadSettingsPage();
+}
+
+// ---- PRINT / PDF ----
+function buildPrintDoc(title, number, customerName, bizName, bizPhone, bizAddress, description, lineItemsHtml, subtotal, taxRate, taxAmt, total, dateLabel, dateValue, footerNote) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#111; background:#fff; padding:40px; }
+  .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:40px; padding-bottom:24px; border-bottom:3px solid #f59e0b; }
+  .brand { font-size:28px; font-weight:900; letter-spacing:3px; color:#f59e0b; }
+  .biz-info { font-size:13px; color:#555; margin-top:4px; line-height:1.6; }
+  .doc-info { text-align:right; }
+  .doc-title { font-size:22px; font-weight:800; color:#1a1f2e; letter-spacing:1px; }
+  .doc-number { font-size:14px; color:#f59e0b; font-weight:700; margin-top:4px; }
+  .doc-date { font-size:13px; color:#555; margin-top:4px; }
+  .to-section { margin-bottom:32px; }
+  .to-label { font-size:11px; text-transform:uppercase; letter-spacing:2px; color:#888; margin-bottom:6px; }
+  .to-name { font-size:18px; font-weight:700; }
+  table { width:100%; border-collapse:collapse; margin-bottom:24px; }
+  th { background:#1a1f2e; color:#f59e0b; padding:10px 14px; text-align:left; font-size:12px; letter-spacing:1px; text-transform:uppercase; }
+  td { padding:10px 14px; border-bottom:1px solid #eee; font-size:14px; }
+  tr:last-child td { border-bottom:none; }
+  .totals { margin-left:auto; width:280px; }
+  .totals-row { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; }
+  .totals-row.total { border-top:2px solid #1a1f2e; margin-top:6px; padding-top:10px; font-weight:800; font-size:16px; }
+  .footer { margin-top:40px; padding-top:20px; border-top:1px solid #eee; font-size:12px; color:#888; text-align:center; }
+  @media print { body { padding:20px; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand">Grarose</div>
+      <div class="biz-info">
+        <strong>${bizName}</strong><br>
+        ${bizPhone ? bizPhone + '<br>' : ''}
+        ${bizAddress || ''}
+      </div>
+    </div>
+    <div class="doc-info">
+      <div class="doc-title">${title}</div>
+      <div class="doc-number">${number}</div>
+      <div class="doc-date">${dateLabel}: ${dateValue}</div>
+    </div>
+  </div>
+
+  <div class="to-section">
+    <div class="to-label">Prepared for</div>
+    <div class="to-name">${customerName}</div>
+  </div>
+
+  ${description ? `<div style="margin-bottom:24px;font-size:14px;color:#333;"><strong>Job:</strong> ${description}</div>` : ''}
+
+  <table>
+    <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th style="text-align:right">Total</th></tr></thead>
+    <tbody>${lineItemsHtml}</tbody>
+  </table>
+
+  <div class="totals">
+    <div class="totals-row"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
+    ${taxAmt > 0 ? `<div class="totals-row"><span>Tax (${taxRate}%)</span><span>$${taxAmt.toFixed(2)}</span></div>` : ''}
+    <div class="totals-row total"><span>Total</span><span>$${total.toFixed(2)}</span></div>
+  </div>
+
+  <div class="footer">${footerNote}<br>Generated by Grarose — Built for the Trades</div>
+</body>
+</html>`;
+}
+
+function printQuote() {
+  const id = document.getElementById('eq-id')?.value;
+  const q = allQuotes.find(x => x.id === id);
+  if (!q) return;
+
+  let items = [];
+  try { items = typeof q.line_items === 'string' ? JSON.parse(q.line_items) : (q.line_items || []); } catch(e) {}
+
+  const subtotal = items.reduce((s, i) => s + (i.qty * i.price), 0);
+  const taxAmt = q.tax_rate > 0 ? subtotal * (q.tax_rate / 100) : 0;
+  const total = subtotal + taxAmt;
+
+  const lineItemsHtml = items.map(i => `<tr>
+    <td>${i.name}</td>
+    <td>${i.qty}</td>
+    <td>$${parseFloat(i.price).toFixed(2)}</td>
+    <td style="text-align:right">$${(i.qty * i.price).toFixed(2)}</td>
+  </tr>`).join('');
+
+  const html = buildPrintDoc(
+    'QUOTE', q.quote_number || '—',
+    q.customer_name,
+    userProfile?.business_name || userProfile?.name || '',
+    userProfile?.phone || '',
+    userProfile?.address || '',
+    q.description,
+    lineItemsHtml,
+    subtotal, q.tax_rate || 0, taxAmt, total,
+    'Date', q.quote_date || '',
+    'This quote is valid for 30 days. Please contact us to approve.'
+  );
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 500);
+}
+
+function printInvoice() {
+  const id = document.getElementById('ei-id')?.value;
+  const inv = allInvoices.find(x => x.id === id);
+  if (!inv) return;
+
+  const subtotal = inv.tax_rate > 0 ? inv.amount / (1 + inv.tax_rate / 100) : inv.amount;
+  const taxAmt = inv.amount - subtotal;
+  const taxRate = inv.tax_rate || 0;
+
+  const lineItemsHtml = `<tr>
+    <td>${inv.description || 'Services rendered'}</td>
+    <td>1</td>
+    <td>$${subtotal.toFixed(2)}</td>
+    <td style="text-align:right">$${subtotal.toFixed(2)}</td>
+  </tr>`;
+
+  const html = buildPrintDoc(
+    'INVOICE', inv.invoice_number || '—',
+    inv.customer_name,
+    userProfile?.business_name || userProfile?.name || '',
+    userProfile?.phone || '',
+    userProfile?.address || '',
+    inv.description,
+    lineItemsHtml,
+    subtotal, taxRate, taxAmt, inv.amount,
+    'Due Date', inv.due_date || 'On receipt',
+    `Invoice status: ${inv.status?.toUpperCase() || 'PENDING'}. Thank you for your business.`
+  );
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 500);
+}
+
+// ---- SETTINGS ----
+function loadSettingsPage() {
+  document.getElementById('set-name').value = userProfile?.name || '';
+  document.getElementById('set-email').value = currentUser?.email || '';
+  document.getElementById('set-biz-name').value = userProfile?.business_name || '';
+  document.getElementById('set-biz-phone').value = userProfile?.phone || '';
+  document.getElementById('set-biz-address').value = userProfile?.address || '';
+  document.getElementById('set-biz-license').value = userProfile?.license_number || '';
+  document.getElementById('set-biz-trade').value = userProfile?.trade || '';
+  document.getElementById('set-notif-overdue').checked = userProfile?.notif_overdue !== false;
+  document.getElementById('set-notif-approved').checked = userProfile?.notif_approved !== false;
+}
+
+async function saveSettings() {
+  const name = document.getElementById('set-name').value.trim();
+  if (!name) { showToast('Please enter your name', true); return; }
+
+  const updates = {
+    name,
+    business_name:  document.getElementById('set-biz-name').value.trim(),
+    phone:          document.getElementById('set-biz-phone').value.trim(),
+    address:        document.getElementById('set-biz-address').value.trim(),
+    license_number: document.getElementById('set-biz-license').value.trim(),
+    trade:          document.getElementById('set-biz-trade').value.trim(),
+    notif_overdue:  document.getElementById('set-notif-overdue').checked,
+    notif_approved: document.getElementById('set-notif-approved').checked,
+  };
+
+  const { error } = await sb.from('profiles').update(updates).eq('id', currentUser.id);
+  if (error) { showToast(`Error: ${error.message}`, true); return; }
+
+  // Update local profile
+  userProfile = { ...userProfile, ...updates };
+  document.getElementById('user-name-display').textContent = name;
+  document.getElementById('user-biz-display').textContent = updates.business_name || '';
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('user-avatar').textContent = initials;
+
+  showToast('Settings saved ✓');
+}
+
+function showChangePassword() {
+  const el = document.getElementById('change-password-section');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function updatePassword() {
+  const newPw = document.getElementById('set-new-password').value;
+  const confirmPw = document.getElementById('set-confirm-password').value;
+  if (!newPw) { showToast('Please enter a new password', true); return; }
+  if (newPw !== confirmPw) { showToast('Passwords do not match', true); return; }
+  if (newPw.length < 6) { showToast('Password must be at least 6 characters', true); return; }
+
+  const { error } = await sb.auth.updateUser({ password: newPw });
+  if (error) { showToast(`Error: ${error.message}`, true); return; }
+
+  document.getElementById('set-new-password').value = '';
+  document.getElementById('set-confirm-password').value = '';
+  document.getElementById('change-password-section').style.display = 'none';
+  showToast('Password updated ✓');
 }
 
 function openModal(id) {
