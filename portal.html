@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grarose — Customer Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --steel: #1a1f2e;
+    --steel-mid: #252b3b;
+    --steel-light: #2e3650;
+    --amber: #f59e0b;
+    --white: #f8f9fa;
+    --muted: #8892a4;
+    --green: #10b981;
+    --red: #ef4444;
+    --border: rgba(255,255,255,0.07);
+    --radius: 12px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--steel);
+    color: var(--white);
+    min-height: 100vh;
+  }
+
+  .portal-header {
+    background: var(--steel-mid);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .portal-logo { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 3px; color: var(--amber); }
+  .portal-biz { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  .portal-body { max-width: 760px; margin: 0 auto; padding: 32px 20px; }
+
+  .greeting { margin-bottom: 32px; }
+  .greeting h1 { font-size: 24px; font-weight: 700; }
+  .greeting p { color: var(--muted); margin-top: 6px; font-size: 14px; }
+
+  .section { margin-bottom: 32px; }
+  .section-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .card {
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .card-row {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .card-row:last-child { border-bottom: none; }
+
+  .card-row-info { flex: 1; min-width: 0; }
+  .card-row-title { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-row-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  .card-row-amount {
+    font-family: 'DM Mono';
+    font-size: 15px;
+    color: var(--amber);
+    white-space: nowrap;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .badge-pending { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-approved { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .badge-paid { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .badge-draft { background: rgba(136,146,164,0.15); color: var(--muted); border: 1px solid rgba(136,146,164,0.3); }
+  .badge-overdue { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .badge-sent { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary { background: var(--amber); color: #000; }
+  .btn-primary:hover { background: #fbbf24; }
+  .btn-ghost { background: transparent; color: var(--white); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .empty { padding: 32px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* Message form */
+  .message-form { padding: 20px; }
+  .message-form textarea {
+    width: 100%;
+    background: var(--steel-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--white);
+    padding: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 100px;
+    margin-bottom: 12px;
+  }
+  .message-form textarea:focus { outline: none; border-color: var(--amber); }
+  .message-form textarea::placeholder { color: var(--muted); }
+
+  /* Quote detail modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; }
+  .modal-body { padding: 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+  .line-items-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  .line-items-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: 8px 0; border-bottom: 1px solid var(--border); text-align: left; }
+  .line-items-table td { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .line-items-table tr:last-child td { border-bottom: none; }
+
+  .totals-section { margin-top: 16px; }
+  .totals-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 14px; color: var(--muted); }
+  .totals-row.total { font-size: 18px; font-weight: 700; color: var(--white); border-top: 1px solid var(--border); margin-top: 8px; padding-top: 12px; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--steel-light);
+    border: 1px solid var(--border);
+    color: var(--white);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  .loading-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    flex-direction: column;
+    gap: 16px;
+    color: var(--muted);
+  }
+
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--amber);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    padding: 32px;
+  }
+  .error-icon { font-size: 48px; }
+  .error-title { font-size: 20px; font-weight: 700; }
+  .error-sub { color: var(--muted); font-size: 14px; max-width: 320px; }
+
+  .approve-success {
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.25);
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: var(--green);
+  }
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- QUOTE DETAIL MODAL -->
+<div class="modal-overlay" id="quote-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="qm-title">Quote Details</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px" id="qm-number"></div>
+      </div>
+      <button class="btn btn-ghost" onclick="closeQuoteModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="qm-approved-banner" style="display:none" class="approve-success">
+        ✅ You approved this quote! We'll be in touch to schedule the work.
+      </div>
+      <div id="qm-desc" style="margin-bottom:16px;font-size:15px;font-weight:600;"></div>
+      <table class="line-items-table">
+        <thead><tr><th>Item</th><th>Qty</th><th style="text-align:right">Price</th></tr></thead>
+        <tbody id="qm-items"></tbody>
+      </table>
+      <div class="totals-section">
+        <div class="totals-row" id="qm-subtotal-row"><span>Subtotal</span><span id="qm-subtotal"></span></div>
+        <div class="totals-row" id="qm-tax-row" style="display:none"><span id="qm-tax-label">Tax</span><span id="qm-tax"></span></div>
+        <div class="totals-row total"><span>Total</span><span id="qm-total"></span></div>
+      </div>
+    </div>
+    <div class="modal-footer" id="qm-footer">
+      <button class="btn btn-ghost" onclick="closeQuoteModal()">Close</button>
+      <button class="btn btn-primary" id="qm-approve-btn" onclick="approveQuote()">✅ Approve This Quote</button>
+    </div>
+  </div>
+</div>
+
+<!-- PORTAL HEADER -->
+<div class="portal-header">
+  <div>
+    <div class="portal-logo">Grarose</div>
+    <div class="portal-biz" id="header-biz"></div>
+  </div>
+  <div style="font-size:13px;color:var(--muted)" id="header-customer"></div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="portal-body" id="portal-body">
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <div>Loading your portal...</div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL  = 'https://zgkbmfqrlevfsrawohww.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpna2JtZnFybGV2ZnNyYXdvaHd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NTgyNTcsImV4cCI6MjA4NzAzNDI1N30.elaOGXFgsbQU5imzWHvDNaxA-ZdqT17AMElcr2JwxZA';
+const PIPEDREAM_URL = 'https://eozcc5rn6y1f627.m.pipedream.net';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let portalData = { customer: null, quotes: [], invoices: [], contractor: null };
+let activeQuote = null;
+
+// ---- INIT ----
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('id');
+
+  if (!token) {
+    showError('No portal link found', 'Please use the link sent to you by your contractor.');
+    return;
+  }
+
+  // Look up customer by portal token
+  const { data: customer, error } = await sb
+    .from('customers')
+    .select('*')
+    .eq('portal_token', token)
+    .single();
+
+  if (error || !customer) {
+    showError('Portal not found', 'This link may be invalid or expired. Please contact your contractor.');
+    return;
+  }
+
+  portalData.customer = customer;
+
+  // Load contractor profile
+  const { data: contractor } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('id', customer.user_id)
+    .single();
+
+  portalData.contractor = contractor;
+
+  // Load quotes and invoices for this customer
+  const [quotesRes, invoicesRes] = await Promise.all([
+    sb.from('quotes').select('*').eq('customer_id', customer.id).order('created_at', { ascending: false }),
+    sb.from('invoices').select('*').eq('customer_id', customer.id).order('created_at', { ascending: false }),
+  ]);
+
+  portalData.quotes   = quotesRes.data || [];
+  portalData.invoices = invoicesRes.data || [];
+
+  renderPortal();
+}
+
+// ---- RENDER ----
+function renderPortal() {
+  const { customer, contractor, quotes, invoices } = portalData;
+  const bizName = contractor?.business_name || contractor?.name || 'Your Contractor';
+  const firstName = customer.name?.split(' ')[0] || 'there';
+  const today = new Date().toISOString().split('T')[0];
+
+  document.getElementById('header-biz').textContent = bizName;
+  document.getElementById('header-customer').textContent = customer.name;
+
+  // Pending quotes (not yet approved)
+  const pendingQuotes = quotes.filter(q => q.status === 'sent' || q.status === 'draft');
+  const approvedQuotes = quotes.filter(q => q.status === 'approved' || q.status === 'invoiced');
+
+  // Unpaid invoices
+  const unpaidInvoices = invoices.filter(i => i.status !== 'paid');
+  const paidInvoices   = invoices.filter(i => i.status === 'paid');
+
+  document.getElementById('portal-body').innerHTML = `
+    <div class="greeting">
+      <h1>Hi ${firstName} 👋</h1>
+      <p>Here's everything from ${bizName}. Review your quotes, check invoices, or send a message.</p>
+    </div>
+
+    ${pendingQuotes.length > 0 ? `
+    <div class="section">
+      <div class="section-title">⚡ Quotes Awaiting Your Approval</div>
+      <div class="card">
+        ${pendingQuotes.map(q => quoteRow(q, true)).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="section">
+      <div class="section-title">📋 Quotes</div>
+      <div class="card">
+        ${quotes.length === 0
+          ? '<div class="empty">No quotes yet</div>'
+          : quotes.map(q => quoteRow(q, false)).join('')
+        }
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">💰 Invoices</div>
+      <div class="card">
+        ${invoices.length === 0
+          ? '<div class="empty">No invoices yet</div>'
+          : invoices.map(inv => invoiceRow(inv, today)).join('')
+        }
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">💬 Send a Message to ${bizName}</div>
+      <div class="card">
+        <div class="message-form">
+          <textarea id="msg-text" placeholder="Type your message here — questions about a quote, scheduling, anything..."></textarea>
+          <button class="btn btn-primary" onclick="sendMessage()" id="msg-btn">Send Message</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:32px 0;font-size:12px;color:var(--muted)">
+      Powered by Grarose — Built for the Trades
+    </div>
+  `;
+}
+
+function quoteRow(q, highlight) {
+  const badgeCls = q.status === 'approved' || q.status === 'invoiced' ? 'badge-approved' : q.status === 'draft' ? 'badge-draft' : 'badge-sent';
+  const badgeLabel = q.status === 'invoiced' ? 'approved' : q.status;
+  return `<div class="card-row" style="${highlight ? 'background:rgba(245,158,11,0.05)' : ''}">
+    <div class="card-row-info">
+      <div class="card-row-title">${q.description || 'Quote'}</div>
+      <div class="card-row-sub">${q.quote_number || ''} · ${fmtDate(q.quote_date)}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="card-row-amount">${fmtMoney(q.total)}</div>
+      <span class="badge ${badgeCls}">${badgeLabel}</span>
+      <button class="btn btn-ghost" onclick="openQuoteModal('${q.id}')" style="font-size:12px;padding:6px 12px">View</button>
+    </div>
+  </div>`;
+}
+
+function invoiceRow(inv, today) {
+  const isOverdue = inv.status !== 'paid' && inv.due_date && inv.due_date < today;
+  const badgeCls = inv.status === 'paid' ? 'badge-paid' : isOverdue ? 'badge-overdue' : 'badge-pending';
+  const badgeLabel = inv.status === 'paid' ? 'Paid' : isOverdue ? 'Overdue' : 'Pending';
+  return `<div class="card-row">
+    <div class="card-row-info">
+      <div class="card-row-title">${inv.description || 'Invoice'}</div>
+      <div class="card-row-sub">${inv.invoice_number || ''} · Due ${inv.due_date ? fmtDate(inv.due_date) : 'on receipt'}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="card-row-amount" style="color:${inv.status==='paid'?'var(--green)':isOverdue?'var(--red)':'var(--amber)'}">${fmtMoney(inv.amount)}</div>
+      <span class="badge ${badgeCls}">${badgeLabel}</span>
+    </div>
+  </div>`;
+}
+
+// ---- QUOTE MODAL ----
+function openQuoteModal(id) {
+  const q = portalData.quotes.find(x => x.id === id);
+  if (!q) return;
+  activeQuote = q;
+
+  let items = [];
+  try { items = typeof q.line_items === 'string' ? JSON.parse(q.line_items) : (q.line_items || []); } catch(e) {}
+
+  const subtotal = items.reduce((s, i) => s + (i.qty * i.price), 0);
+  const taxAmt   = q.tax_rate > 0 ? subtotal * (q.tax_rate / 100) : 0;
+  const total    = subtotal + taxAmt;
+
+  document.getElementById('qm-title').textContent = q.description || 'Quote';
+  document.getElementById('qm-number').textContent = q.quote_number || '';
+  document.getElementById('qm-desc').textContent = q.description || '';
+  document.getElementById('qm-items').innerHTML = items.map(i => `
+    <tr>
+      <td>${i.name}</td>
+      <td style="color:var(--muted)">${i.qty}</td>
+      <td style="text-align:right;font-family:'DM Mono'">${fmtMoney(i.qty * i.price)}</td>
+    </tr>`).join('');
+  document.getElementById('qm-subtotal').textContent = fmtMoney(subtotal);
+  if (taxAmt > 0) {
+    document.getElementById('qm-tax-row').style.display = 'flex';
+    document.getElementById('qm-tax-label').textContent = `Tax (${q.tax_rate}%)`;
+    document.getElementById('qm-tax').textContent = fmtMoney(taxAmt);
+  } else {
+    document.getElementById('qm-tax-row').style.display = 'none';
+  }
+  document.getElementById('qm-total').textContent = fmtMoney(total);
+
+  // Show approve button only if pending
+  const isApprovable = q.status === 'sent' || q.status === 'draft';
+  const isApproved   = q.status === 'approved' || q.status === 'invoiced';
+  document.getElementById('qm-approve-btn').style.display = isApprovable ? 'block' : 'none';
+  document.getElementById('qm-approved-banner').style.display = isApproved ? 'flex' : 'none';
+
+  document.getElementById('quote-modal').classList.add('open');
+}
+
+function closeQuoteModal() {
+  document.getElementById('quote-modal').classList.remove('open');
+  activeQuote = null;
+}
+
+async function approveQuote() {
+  if (!activeQuote) return;
+  const btn = document.getElementById('qm-approve-btn');
+  btn.disabled = true;
+  btn.textContent = 'Approving...';
+
+  const { error } = await sb.from('quotes').update({ status: 'approved' }).eq('id', activeQuote.id);
+
+  if (error) {
+    showToast('Something went wrong — please try again');
+    btn.disabled = false;
+    btn.textContent = '✅ Approve This Quote';
+    return;
+  }
+
+  // Update local data
+  const q = portalData.quotes.find(x => x.id === activeQuote.id);
+  if (q) q.status = 'approved';
+  activeQuote.status = 'approved';
+
+  // Notify contractor via Pipedream
+  const bizName = portalData.contractor?.business_name || portalData.contractor?.name || '';
+  const contractorEmail = portalData.contractor?.email || '';
+  if (contractorEmail) {
+    const html = `<div style="font-family:sans-serif;padding:20px">
+      <h2 style="color:#f59e0b">Quote Approved ✅</h2>
+      <p><strong>${portalData.customer.name}</strong> has approved the quote:</p>
+      <p style="font-size:18px;font-weight:bold;margin:16px 0">${activeQuote.description || 'Quote'} — ${fmtMoney(activeQuote.total)}</p>
+      <p>Log in to Grarose to convert it to an invoice.</p>
+    </div>`;
+    fetch(PIPEDREAM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'email', to: contractorEmail, subject: `Quote Approved by ${portalData.customer.name}`, html })
+    }).catch(() => {});
+  }
+
+  document.getElementById('qm-approve-btn').style.display = 'none';
+  document.getElementById('qm-approved-banner').style.display = 'flex';
+  showToast('Quote approved! ✅ Your contractor will be notified.');
+  renderPortal();
+}
+
+// ---- SEND MESSAGE ----
+async function sendMessage() {
+  const text = document.getElementById('msg-text')?.value?.trim();
+  if (!text) { showToast('Please type a message first'); return; }
+
+  const btn = document.getElementById('msg-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  const contractorEmail = portalData.contractor?.email || '';
+  const bizName = portalData.contractor?.business_name || portalData.contractor?.name || '';
+  const customerName = portalData.customer?.name || 'A customer';
+
+  if (!contractorEmail) {
+    showToast('Could not send — contractor email not found');
+    btn.disabled = false; btn.textContent = 'Send Message';
+    return;
+  }
+
+  const html = `<div style="font-family:sans-serif;padding:20px">
+    <h2 style="color:#f59e0b">Message from ${customerName}</h2>
+    <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin:16px 0;font-size:15px;line-height:1.6">
+      ${text.replace(/\n/g, '<br>')}
+    </div>
+    <p style="color:#888;font-size:13px">Sent via Grarose Customer Portal</p>
+  </div>`;
+
+  try {
+    const res = await fetch(PIPEDREAM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'email',
+        to: contractorEmail,
+        subject: `Message from ${customerName} via Grarose Portal`,
+        html
+      })
+    });
+
+    if (res.ok) {
+      document.getElementById('msg-text').value = '';
+      showToast('Message sent! ✓');
+    } else {
+      showToast('Failed to send — please try again');
+    }
+  } catch(e) {
+    showToast('Failed to send — please try again');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Send Message';
+}
+
+// ---- HELPERS ----
+function fmtMoney(n) {
+  return '$' + (parseFloat(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y, m, day] = d.split('-');
+  return `${parseInt(m)}/${parseInt(day)}/${y}`;
+}
+
+function showError(title, sub) {
+  document.getElementById('portal-body').innerHTML = `
+    <div class="error-screen">
+      <div class="error-icon">🔗</div>
+      <div class="error-title">${title}</div>
+      <div class="error-sub">${sub}</div>
+    </div>`;
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+init();
+</script>
+</body>
+</html>
