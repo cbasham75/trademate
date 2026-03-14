@@ -1710,14 +1710,14 @@ async function saveQuote(status) {
   if (error) { showToast(`Error: ${error.message}`, true); return; }
   const newCount = await learnFromItems(items);
   if (newCount > 0) flashSavedPill(newCount);
+  const jobDesc = v('q-job-desc');
   closeModal('new-quote-modal');
   await loadAllData();
-  // Open send options panel
-  const saved = allQuotes.find(q => q.customer_id === custId && q.description === v('eq-job-desc')) || {};
+  // Open send options panel — find the most recently created quote for this customer
   const cust = allCustomers.find(c => c.id === custId) || { phone: '', email: '' };
   const bizName = userProfile?.business_name || userProfile?.name || '';
   const itemsText = items.map(i => `  • ${i.name}: ${fmtMoney(i.qty * i.price)}`).join('\n');
-  const msg = `Hi ${custName}, here is your quote from ${bizName}:\n\n${v('q-job-desc') || 'Job'}\n${itemsText}\n\nTotal: ${fmtMoney(total)}\n\nReply to approve or ask questions.`;
+  const msg = `Hi ${custName}, here is your quote from ${bizName}:\n\n${jobDesc || 'Job'}\n${itemsText}\n\nTotal: ${fmtMoney(total)}\n\nReply to approve or ask questions.`;
   if (status === 'sent') openSendOptions(cust.phone, cust.email, msg, async () => {});
   else showToast('Draft saved ✓');
 }
@@ -2440,6 +2440,7 @@ function closeSendOptions() {
 async function markAsSentManually() {
   if (window._onSentCallback) await window._onSentCallback();
   closeSendOptions();
+  await loadAllData();
   showToast('Marked as sent ✓');
 }
 
