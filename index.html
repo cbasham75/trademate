@@ -3255,7 +3255,7 @@ async function saveSettings() {
     notif_approved: document.getElementById('set-notif-approved').checked,
   };
 
-  const { error } = await sb.from('profiles').update(updates).eq('id', currentUser.id);
+  const { error } = await sb.from('profiles').upsert({ id: currentUser.id, ...updates });
   if (error) { showToast(`Error: ${error.message}`, true); return; }
 
   // Update local profile
