@@ -1453,6 +1453,31 @@ function showApp() {
   show('app-shell');
   setDashboardGreeting();
   loadAllData();
+  startRealtimeSubscription();
+}
+
+function startRealtimeSubscription() {
+  // Clean up any existing subscription
+  if (window._realtimeChannel) {
+    sb.removeChannel(window._realtimeChannel);
+  }
+
+  window._realtimeChannel = sb.channel('quotes-changes')
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'quotes',
+      filter: `user_id=eq.${currentUser.id}`
+    }, async (payload) => {
+      const updated = payload.new;
+      if (updated.status === 'approved' && payload.old.status !== 'approved') {
+        await loadAllData();
+        showToast(`✅ Quote approved by ${updated.approved_by || 'customer'}!`);
+      } else {
+        await loadAllData();
+      }
+    })
+    .subscribe();
 }
 
 function switchAuthTab(tab) {
