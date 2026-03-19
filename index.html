@@ -1509,7 +1509,7 @@ async function doForgotPassword() {
   const btn = document.getElementById('forgot-btn');
   btn.disabled = true; btn.textContent = 'Sending...';
   const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://grarose.com'
+    redirectTo: 'https://aio.grarose.com'
   });
   btn.disabled = false; btn.textContent = 'Send Reset Link →';
   if (error) {
@@ -1679,7 +1679,7 @@ async function sharePortal(customerId) {
     c.portal_token = token;
   }
 
-  const portalUrl = `https://grarose.com/portal.html?id=${token}`;
+  const portalUrl = `https://aio.grarose.com/portal.html?id=${token}`;
 
   // Copy to clipboard
   try {
@@ -1772,7 +1772,7 @@ async function saveQuote(status) {
   const cust = allCustomers.find(c => c.id === custId) || { phone: '', email: '' };
   const bizName = userProfile?.business_name || userProfile?.name || '';
   const itemsText = items.map(i => `  • ${i.name}: ${fmtMoney(i.qty * i.price)}`).join('\n');
-  const approvalLink = approvalToken ? `\n\nReview & approve your quote here:\nhttps://grarose.com/approve?token=${approvalToken}` : '';
+  const approvalLink = approvalToken ? `\n\nReview & approve your quote here:\nhttps://aio.grarose.com/approve?token=${approvalToken}` : '';
   const msg = `Hi ${custName}, here is your quote from ${bizName}:\n\n${jobDesc || 'Job'}\n${itemsText}\n\nTotal: ${fmtMoney(total)}${approvalLink}`;
   if (status === 'sent') openSendOptions(cust.phone, cust.email, msg, async () => {});
   else showToast('Draft saved ✓');
@@ -2029,7 +2029,7 @@ async function updateQuote(status) {
     const cust = allCustomers.find(c => c.id === custId) || { phone: '', email: '' };
     const bizName = userProfile?.business_name || userProfile?.name || '';
     const itemsText = items.map(i => `  • ${i.name}: ${fmtMoney(i.qty * i.price)}`).join('\n');
-    const approvalLink = approvalToken ? `\n\nReview & approve your quote here:\nhttps://grarose.com/approve?token=${approvalToken}` : '';
+    const approvalLink = approvalToken ? `\n\nReview & approve your quote here:\nhttps://aio.grarose.com/approve?token=${approvalToken}` : '';
     const msg = `Hi ${custName}, here is your quote from ${bizName}:\n\n${v('eq-job-desc') || 'Job'}\n${itemsText}\n\nTotal: ${fmtMoney(total)}${approvalLink}`;
     openSendOptions(cust.phone, cust.email, msg, async () => {});
   } else {
@@ -2400,7 +2400,7 @@ function sendQuoteToCustomer(quoteId) {
     } catch(e) { return ''; }
   })();
   const token = q.approval_token || generateApprovalToken();
-  const approvalLink = `\n\nReview & approve your quote here:\nhttps://grarose.com/approve?token=${token}`;
+  const approvalLink = `\n\nReview & approve your quote here:\nhttps://aio.grarose.com/approve?token=${token}`;
   const msg = `Hi ${q.customer_name}, here is your quote from ${bizName}:\n\n${q.description || 'Job'}\n${itemList}\n\nTotal: ${fmtMoney(q.total)}${approvalLink}`;
   openSendOptions(cust.phone, cust.email, msg, async () => {
     await sb.from('quotes').update({ status: 'sent', approval_token: token }).eq('id', quoteId);
