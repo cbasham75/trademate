@@ -344,6 +344,7 @@
   }
 
   let quoteData = null;
+  let contractorProfile = null;
 
   async function init() {
     show('state-loading');
@@ -369,6 +370,13 @@
       `;
       return;
     }
+
+    // Fetch contractor profile for payment methods
+    try {
+      const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${q.user_id}&select=business_name,name,payment_methods`, { headers });
+      const profs = await profRes.json();
+      contractorProfile = profs[0] || null;
+    } catch(e) {}
 
     // Populate form
     document.getElementById('q-number').textContent = q.quote_number || `Quote #${q.id.slice(0,8)}`;
@@ -446,11 +454,24 @@
 
     if (res.ok) {
       show('state-approved');
+      // Build pay now buttons from contractor payment methods
+      const methods = (contractorProfile?.payment_methods || []).filter(m => m.name && m.link);
+      const paySection = methods.length ? `
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb">
+          <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:12px">Pay Now</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            ${methods.map(m => {
+              const href = m.link.startsWith('http') ? m.link : 'https://' + m.link;
+              return '<a href="' + href + '" target="_blank" style="padding:11px 22px;background:#22C55E;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;display:inline-block">Pay via ' + m.name + '</a>';
+            }).join('')}
+          </div>
+        </div>` : '';
       document.getElementById('approved-meta').innerHTML = `
         <div class="success-meta-row"><span>Quote</span><span>${quoteData.quote_number || quoteData.id.slice(0,8)}</span></div>
         <div class="success-meta-row"><span>Approved by</span><span>${sig}</span></div>
         <div class="success-meta-row"><span>Approved on</span><span>${new Date(now).toLocaleString()}</span></div>
         <div class="success-meta-row"><span>IP Address</span><span>${ip}</span></div>
+        ${paySection}
       `;
       // Swap to success
       const successCard = document.querySelector('.success-card');

@@ -941,6 +941,14 @@
         </div>
       </div>
 
+      <!-- Payment Methods -->
+      <div class="card" style="margin-bottom:20px">
+        <div style="font-family:'Barlow Condensed';font-size:20px;letter-spacing:1px;margin-bottom:8px;color:var(--amber)">Payment Methods</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:18px">Add the payment links you use to collect from customers. These will appear as Pay Now buttons on your invoices.</div>
+        <div id="payment-methods-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addPaymentMethodRow()">+ Add Payment Method</button>
+      </div>
+
       <div style="display:flex;justify-content:flex-end;gap:12px">
         <button class="btn btn-danger btn-sm" onclick="confirmSignOut()">Sign Out</button>
         <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
@@ -2547,6 +2555,15 @@ async function sendRealEmail(toEmail, message) {
           <div class="msg">${cleanMessage.replace(/\n/g, '<br>')}</div>
           ${approvalUrl ? `<a href="${approvalUrl}" class="approve-btn">✅ Review &amp; Approve Quote</a>` : ''}
           <div class="reply">Simply reply to this email with any questions.</div>
+          ${(() => {
+            const methods = userProfile?.payment_methods?.filter(m => m.name && m.link) || [];
+            if (!methods.length) return '';
+            const btns = methods.map(m => {
+              const href = m.link.startsWith('http') ? m.link : `https://${m.link}`;
+              return `<a href="${href}" style="display:inline-block;margin:4px 6px 4px 0;padding:10px 20px;background:#22C55E;color:#fff;text-decoration:none;border-radius:7px;font-size:14px;font-weight:600">Pay via ${m.name}</a>`;
+            }).join('');
+            return `<div style="margin-top:24px;padding-top:20px;border-top:1px solid #eee"><div style="font-size:13px;font-weight:600;color:#111;margin-bottom:10px">Pay Now</div>${btns}</div>`;
+          })()}
         </div>
         <div class="footer">Sent via Grarose &nbsp;·&nbsp; Built for the Trades</div>
       </div></body></html>`;
@@ -3465,6 +3482,43 @@ function loadSettingsPage() {
   document.getElementById('set-biz-trade').value = userProfile?.trade || '';
   document.getElementById('set-notif-overdue').checked = userProfile?.notif_overdue !== false;
   document.getElementById('set-notif-approved').checked = userProfile?.notif_approved !== false;
+  renderPaymentMethodsList();
+}
+
+function renderPaymentMethodsList() {
+  const list = document.getElementById('payment-methods-list');
+  if (!list) return;
+  const methods = userProfile?.payment_methods || [];
+  if (methods.length === 0) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--muted)">No payment methods added yet.</div>';
+    return;
+  }
+  list.innerHTML = methods.map((m, i) => `
+    <div style="display:flex;gap:10px;align-items:center">
+      <input type="text" value="${m.name || ''}" placeholder="Name (e.g. Venmo)" 
+        style="flex:1;padding:10px 14px;background:var(--steel-light);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:'DM Sans';font-size:14px;outline:none"
+        oninput="updatePaymentMethod(${i}, 'name', this.value)">
+      <input type="text" value="${m.link || ''}" placeholder="Link or info (e.g. venmo.com/you or @handle)" 
+        style="flex:2;padding:10px 14px;background:var(--steel-light);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:'DM Sans';font-size:14px;outline:none"
+        oninput="updatePaymentMethod(${i}, 'link', this.value)">
+      <button onclick="removePaymentMethod(${i})" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px">×</button>
+    </div>`).join('');
+}
+
+function addPaymentMethodRow() {
+  if (!userProfile.payment_methods) userProfile.payment_methods = [];
+  userProfile.payment_methods.push({ name: '', link: '' });
+  renderPaymentMethodsList();
+}
+
+function updatePaymentMethod(i, field, value) {
+  if (!userProfile.payment_methods) userProfile.payment_methods = [];
+  userProfile.payment_methods[i][field] = value;
+}
+
+function removePaymentMethod(i) {
+  userProfile.payment_methods.splice(i, 1);
+  renderPaymentMethodsList();
 }
 
 async function saveSettings() {
@@ -3473,13 +3527,14 @@ async function saveSettings() {
 
   const updates = {
     name,
-    business_name:  document.getElementById('set-biz-name').value.trim(),
-    phone:          document.getElementById('set-biz-phone').value.trim(),
-    address:        document.getElementById('set-biz-address').value.trim(),
-    license_number: document.getElementById('set-biz-license').value.trim(),
-    trade:          document.getElementById('set-biz-trade').value.trim(),
-    notif_overdue:  document.getElementById('set-notif-overdue').checked,
-    notif_approved: document.getElementById('set-notif-approved').checked,
+    business_name:   document.getElementById('set-biz-name').value.trim(),
+    phone:           document.getElementById('set-biz-phone').value.trim(),
+    address:         document.getElementById('set-biz-address').value.trim(),
+    license_number:  document.getElementById('set-biz-license').value.trim(),
+    trade:           document.getElementById('set-biz-trade').value.trim(),
+    notif_overdue:   document.getElementById('set-notif-overdue').checked,
+    notif_approved:  document.getElementById('set-notif-approved').checked,
+    payment_methods: userProfile?.payment_methods || [],
   };
 
   const { error } = await sb.from('profiles').upsert({ id: currentUser.id, ...updates });
