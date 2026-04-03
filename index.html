@@ -1565,21 +1565,54 @@ function checkSubscriptionStatus() {
   const status = userProfile.subscription_status || 'trial';
   const trialEnd = userProfile.trial_ends_at ? new Date(userProfile.trial_ends_at) : null;
   const now = new Date();
-  const isTrialActive = status === 'trial' && trialEnd && trialEnd > now;
-  const isSubscribed = status === 'active';
 
-  // Calculate days left in trial
-  if (isTrialActive) {
-    const daysLeft = Math.ceil((trialEnd - now) / 86400000);
-    if (daysLeft <= 7) {
-      showTrialBanner(daysLeft);
-    }
+  // Active subscriber — full access, no banners
+  if (status === 'active') return;
+
+  // Trial with no end date set yet — give benefit of the doubt, set it now
+  if (status === 'trial' && !trialEnd) {
+    const newTrialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    sb.from('profiles').update({
+      trial_started_at: now.toISOString(),
+      trial_ends_at: newTrialEnd.toISOString()
+    }).eq('id', currentUser.id).then(() => {});
+    userProfile.trial_ends_at = newTrialEnd.toISOString();
+    showWelcomeBanner(30);
     return;
   }
 
-  if (!isSubscribed) {
-    showPaywall();
+  // Trial active
+  if (status === 'trial' && trialEnd && trialEnd > now) {
+    const daysLeft = Math.ceil((trialEnd - now) / 86400000);
+    if (daysLeft <= 7) showTrialBanner(daysLeft);
+    return;
   }
+
+  // Trial expired and not subscribed
+  showPaywall();
+}
+
+function showWelcomeBanner(days) {
+  const existing = document.getElementById('welcome-banner');
+  if (existing) return;
+  const banner = document.createElement('div');
+  banner.id = 'welcome-banner';
+  banner.style.cssText = 'position:fixed;bottom:0;left:220px;right:0;z-index:500;background:linear-gradient(135deg,#0f2820,#1a2035);border-top:2px solid rgba(34,197,94,0.4);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px';
+  banner.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:22px">🎉</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#fff">Welcome to Grarose AIO! You have ${days} days free.</div>
+        <div style="font-size:12px;color:var(--muted)">No credit card needed. Explore everything — subscribe when you're ready.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-shrink:0">
+      <button onclick="document.getElementById('welcome-banner').remove()" style="padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans'">Got it</button>
+      <button onclick="showUpgradeModal()" style="padding:8px 20px;background:var(--green);border:none;border-radius:7px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans'">See Plans</button>
+    </div>`;
+  document.body.appendChild(banner);
+  // Auto-dismiss after 10 seconds
+  setTimeout(() => banner.remove(), 10000);
 }
 
 function showTrialBanner(daysLeft) {
@@ -1604,7 +1637,10 @@ function showTrialBanner(daysLeft) {
 }
 
 function showPaywall() {
-  // Disable all create/edit/delete buttons
+  // Set global flag so save/send functions can check
+  window._paywallActive = true;
+
+  // Disable top-level create buttons
   document.querySelectorAll('.btn-primary, .btn-danger, .btn-success').forEach(btn => {
     if (!btn.closest('#upgrade-modal') && !btn.id?.includes('upgrade')) {
       btn.disabled = true;
@@ -1895,7 +1931,8 @@ async function loadAllData() {
 
 // ---- CUSTOMERS ----
 async function saveCustomer() {
-  const first = v('cust-first'), last = v('cust-last');
+  if (window._paywallActive) { showUpgradeModal(); return; }
+    const first = v('cust-first'), last = v('cust-last');
   if (!first) { showToast('Please enter a first name', true); return; }
   const { error } = await sb.from('customers').insert({
     user_id:  currentUser.id,
@@ -2018,7 +2055,8 @@ async function deleteCustomer() {
 
 // ---- QUOTES ----
 async function saveQuote(status) {
-  const items = collectLineItems();
+  if (window._paywallActive) { showUpgradeModal(); return; }
+    const items = collectLineItems();
   if (items.length === 0) { showToast('Add at least one line item with a price', true); return; }
   const custId = v('q-customer-select') || null;
   if (!custId) { showToast('Please select a customer — or click "+ New Customer" to add one', true); return; }
@@ -2323,7 +2361,8 @@ async function updateQuote(status) {
 }
 
 async function convertToInvoice() {
-  const id = document.getElementById('eq-id').value;
+  if (window._paywallActive) { showUpgradeModal(); return; }
+    const id = document.getElementById('eq-id').value;
   const custId = document.getElementById('eq-customer-select').value;
   const items = collectEditLineItems();
   const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0);
@@ -2465,7 +2504,8 @@ async function markJobComplete(id, currentStatus) {
 
 // ---- INVOICES ----
 async function saveInvoice() {
-  const custId = v('inv-customer-select');
+  if (window._paywallActive) { showUpgradeModal(); return; }
+    const custId = v('inv-customer-select');
   const amount = parseFloat(v('inv-amount'));
   const dueDate = v('inv-due-date');
   if (!amount || isNaN(amount)) { showToast('Please enter an amount', true); return; }
