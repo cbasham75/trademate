@@ -1835,24 +1835,77 @@ async function doSignup() {
   setAuthLoading('signup-btn', true);
   const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { name, business_name: biz } } });
   if (error) { authError('signup', error.message); setAuthLoading('signup-btn', false); return; }
-  // Insert profile row
-  if (data.user) {
+
+  const userId = data?.user?.id || data?.session?.user?.id;
+
+  // Insert profile row if we have the user ID
+  if (userId) {
     const trialStart = new Date().toISOString();
     const trialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-    await sb.from('profiles').upsert({
-      id: data.user.id, name, business_name: biz,
+    const { error: profileError } = await sb.from('profiles').upsert({
+      id: userId, name, business_name: biz,
       trial_started_at: trialStart,
       trial_ends_at: trialEnd,
       subscription_status: 'trial'
     });
+    if (profileError) console.error('Profile creation error:', profileError);
   }
+
   setAuthLoading('signup-btn', false);
-  showToast('Account created! Welcome to Grarose 🎉');
+
+  // Show confirmation message — email confirmation may be required
+  if (data?.session) {
+    // Logged in immediately — no email confirmation required
+    showToast('Account created! Welcome to Grarose 🎉');
+  } else {
+    // Email confirmation required
+    showSignupConfirmation(email);
+  }
+}
+
+function showSignupConfirmation(email) {
+  hide('auth-screen');
+  // Show a confirmation screen
+  const existing = document.getElementById('confirm-screen');
+  if (existing) existing.remove();
+  const screen = document.createElement('div');
+  screen.id = 'confirm-screen';
+  screen.style.cssText = 'position:fixed;inset:0;background:var(--steel);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px';
+  screen.innerHTML = `
+    <div style="background:var(--steel-mid);border:1px solid var(--border);border-radius:20px;padding:40px;max-width:440px;width:100%;text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">📧</div>
+      <div style="font-family:'Barlow Condensed';font-size:32px;font-weight:900;letter-spacing:1px;margin-bottom:12px">Check your email</div>
+      <div style="font-size:15px;color:var(--text);margin-bottom:8px">We sent a confirmation link to:</div>
+      <div style="font-size:15px;font-weight:700;color:var(--green);margin-bottom:24px">${email}</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:28px">Click the link in the email to verify your account and get started. Check your spam folder if you don't see it within a minute.</div>
+      <button onclick="document.getElementById('confirm-screen').remove();show('auth-screen')" 
+        style="padding:12px 28px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:14px;cursor:pointer;font-family:'DM Sans'">
+        Back to Sign In
+      </button>
+    </div>`;
+  document.body.appendChild(screen);
 }
 
 async function loadUserProfile() {
   const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
-  userProfile = data || { name: currentUser.email, business_name: '' };
+  
+  // If no profile exists, create one now
+  if (!data) {
+    const trialStart = new Date().toISOString();
+    const trialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: newProfile } = await sb.from('profiles').upsert({
+      id: currentUser.id,
+      name: currentUser.user_metadata?.name || currentUser.email,
+      business_name: currentUser.user_metadata?.business_name || '',
+      trial_started_at: trialStart,
+      trial_ends_at: trialEnd,
+      subscription_status: 'trial'
+    }).select().single();
+    userProfile = newProfile || { name: currentUser.email, business_name: '' };
+  } else {
+    userProfile = data;
+  }
+
   // Ensure payment_methods is always an array
   if (typeof userProfile.payment_methods === 'string') {
     try { userProfile.payment_methods = JSON.parse(userProfile.payment_methods); } catch(e) { userProfile.payment_methods = []; }
