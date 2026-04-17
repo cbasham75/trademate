@@ -732,6 +732,9 @@
       </div>
     </div>
     <div class="sidebar-bottom">
+      <div id="sidebar-upgrade-btn" style="display:none;margin-bottom:12px">
+        <button onclick="showUpgradeModal()" style="width:100%;padding:10px;background:var(--green);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans';display:flex;align-items:center;justify-content:center;gap:6px">⚡ Upgrade to Full Access</button>
+      </div>
       <div class="user-block" onclick="confirmSignOut()">
         <div class="user-avatar" id="user-avatar">?</div>
         <div>
@@ -1569,6 +1572,10 @@ function checkSubscriptionStatus() {
   // Active subscriber — full access, no banners
   if (status === 'active') return;
 
+  // Show upgrade button in sidebar for all non-subscribers
+  const sidebarUpgrade = document.getElementById('sidebar-upgrade-btn');
+  if (sidebarUpgrade) sidebarUpgrade.style.display = 'block';
+
   // Trial with no end date set yet — give benefit of the doubt, set it now
   if (status === 'trial' && !trialEnd) {
     const newTrialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -1611,8 +1618,7 @@ function showWelcomeBanner(days) {
       <button onclick="showUpgradeModal()" style="padding:8px 20px;background:var(--green);border:none;border-radius:7px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans'">See Plans</button>
     </div>`;
   document.body.appendChild(banner);
-  // Auto-dismiss after 10 seconds
-  setTimeout(() => banner.remove(), 10000);
+  // No auto-dismiss — user must click Got it
 }
 
 function showTrialBanner(daysLeft) {
@@ -1672,7 +1678,7 @@ function showUpgradeModal() {
   if (existing) existing.remove();
   const modal = document.createElement('div');
   modal.id = 'upgrade-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px';
   modal.innerHTML = `
     <div style="background:var(--steel-mid);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:520px;animation:modalIn 0.2s ease">
       <div style="text-align:center;margin-bottom:32px">
@@ -1734,35 +1740,16 @@ function selectPlan(plan) {
 }
 
 async function startCheckout() {
-  const btn = document.getElementById('upgrade-btn');
-  if (btn) { btn.textContent = 'Loading...'; btn.disabled = true; }
-
-  const priceId = window._selectedPlan === 'annual'
-    ? 'price_1THyW3COJx56gCU3dnq6ky4O'
-    : 'price_1THyUeCOJx56gCU3PocRjhUI';
-
-  try {
-    const res = await fetch('https://eoczadberom79oo.m.pipedream.net', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        priceId,
-        email: currentUser.email,
-        userId: currentUser.id,
-        plan: window._selectedPlan
-      })
-    });
-    const data = await res.json();
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      showToast('Error starting checkout. Please try again.', true);
-      if (btn) { btn.textContent = 'Subscribe'; btn.disabled = false; }
-    }
-  } catch(err) {
-    showToast('Error: ' + err.message, true);
-    if (btn) { btn.textContent = 'Subscribe'; btn.disabled = false; }
+  if (!currentUser || !currentUser.email) {
+    showToast('Please sign in first to subscribe.', true);
+    return;
   }
+
+  const url = window._selectedPlan === 'annual'
+    ? 'https://buy.stripe.com/test_bJe14m38f4n3gyH1qT2Ry00'
+    : 'https://buy.stripe.com/test_9B6eVcdMTbPv82b7Ph2Ry01';
+
+  window.location.href = url;
 }
 
 function startRealtimeSubscription() {
