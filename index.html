@@ -3902,6 +3902,9 @@ async function saveSettings() {
   const name = document.getElementById('set-name').value.trim();
   if (!name) { showToast('Please enter your name', true); return; }
 
+  const saveBtn = document.querySelector('#page-settings .btn-primary');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+
   const updates = {
     name,
     business_name:   document.getElementById('set-biz-name').value.trim(),
@@ -3914,10 +3917,19 @@ async function saveSettings() {
     payment_methods: userProfile?.payment_methods || [],
   };
 
-  const { error } = await sb.from('profiles').upsert({ id: currentUser.id, ...updates });
-  if (error) { showToast(`Error: ${error.message}`, true); return; }
+  // Timeout wrapper — never hang more than 8 seconds
+  try {
+    const upsertPromise = sb.from('profiles').upsert({ id: currentUser.id, ...updates });
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), 8000));
+    const { error } = await Promise.race([upsertPromise, timeoutPromise]);
+    if (error) throw new Error(error.message);
+  } catch(err) {
+    showToast(`Save failed: ${err.message}. Try again.`, true);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Settings'; }
+    return;
+  }
 
-  // Update local profile directly — no need to re-fetch
+  // Update local profile directly
   userProfile = { ...userProfile, ...updates };
   document.getElementById('user-name-display').textContent = name;
   document.getElementById('user-biz-display').textContent = updates.business_name || '';
@@ -3927,13 +3939,11 @@ async function saveSettings() {
   showToast('Settings saved ✓');
 
   // Visual feedback on save button
-  const saveBtn = document.querySelector('#page-settings .btn-primary');
   if (saveBtn) {
-    const original = saveBtn.textContent;
+    const original = 'Save Settings';
     saveBtn.textContent = '✓ Saved!';
     saveBtn.style.background = '#16a34a';
     saveBtn.style.transform = 'scale(1.04)';
-    saveBtn.disabled = true;
     setTimeout(() => {
       saveBtn.textContent = original;
       saveBtn.style.background = '';
